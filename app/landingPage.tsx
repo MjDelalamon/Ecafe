@@ -50,14 +50,13 @@ export default function LandingScreen() {
 
       const userData = userSnapshot.data();
 
-      // 🔹 Check if user is active (email verified)
-
       // 🔹 Navigate to QrTest with Firestore ID (email) and points
       router.replace({
         pathname: "/QrTest",
         params: {
           qrValue: userEmail,
           points: userData.points.toString(),
+          mobile: userData.mobile, // pass mobile if exists
         },
       });
     } catch (error: any) {

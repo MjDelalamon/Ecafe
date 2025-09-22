@@ -5,9 +5,10 @@ import QRCode from "react-native-qrcode-svg";
 
 export default function QrTest() {
   // ✅ accept qrValue instead of mobile
-  const { qrValue, points } = useLocalSearchParams<{
+  const { qrValue, points, mobile } = useLocalSearchParams<{
     qrValue: string;
     points: string;
+    mobile: string;
   }>();
 
   const router = useRouter();
@@ -26,7 +27,7 @@ export default function QrTest() {
         ) : (
           <Text style={styles.error}>No QR code found</Text>
         )}
-        <Text style={styles.barcodeText}>{qrValue}</Text>
+        <Text style={styles.barcodeText}>{mobile}</Text>
         <Text style={styles.scanHint}>
           SCAN YOUR BARCODE BEFORE PAYMENT TO EARN POINTS
         </Text>
