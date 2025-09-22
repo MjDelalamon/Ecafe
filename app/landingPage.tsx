@@ -1,6 +1,9 @@
 import { useRouter } from "expo-router";
+import { signInWithEmailAndPassword } from "firebase/auth";
+import { doc, getDoc } from "firebase/firestore";
 import React, { useState } from "react";
 import {
+  Alert,
   Image,
   StyleSheet,
   Text,
@@ -8,18 +11,62 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import { auth, db } from "../Firebase/firebaseConfig"; // import Firebase Auth and Firestore
 
 export default function LandingScreen() {
-  const [mobile, setMobile] = useState<string>("");
+  const [email, setEmail] = useState<string>("");
+  const [password, setPassword] = useState<string>("");
   const router = useRouter();
 
-  const handleContinue = () => {
-    console.log("Mobile Number:", mobile);
-    router.replace("/Otp"); // go to OTP page
+  const handleLogin = async () => {
+    if (!email || !password) {
+      Alert.alert("Error", "Please enter both email and password");
+      return;
+    }
+
+    try {
+      // 🔹 Sign in with Firebase Auth
+      const userCredential = await signInWithEmailAndPassword(
+        auth,
+        email,
+        password
+      );
+
+      // 🔹 Get the signed-in user's email from userCredential
+      const userEmail = userCredential.user.email;
+      if (!userEmail) {
+        Alert.alert("Error", "Unable to retrieve user email");
+        return;
+      }
+
+      // 🔹 Fetch Firestore document using userEmail as ID
+      const userDocRef = doc(db, "customers", userEmail);
+      const userSnapshot = await getDoc(userDocRef);
+
+      if (!userSnapshot.exists()) {
+        Alert.alert("Error", "User data not found in Firestore");
+        return;
+      }
+
+      const userData = userSnapshot.data();
+
+      // 🔹 Check if user is active (email verified)
+
+      // 🔹 Navigate to QrTest with Firestore ID (email) and points
+      router.replace({
+        pathname: "/QrTest",
+        params: {
+          qrValue: userEmail,
+          points: userData.points.toString(),
+        },
+      });
+    } catch (error: any) {
+      Alert.alert("Login Failed", error.message);
+    }
   };
 
   const handleRegister = () => {
-    router.push("/Register"); // go to Register page
+    router.push("/Register"); // navigate to Register page
   };
 
   return (
@@ -30,19 +77,29 @@ export default function LandingScreen() {
         resizeMode="contain"
       />
       <Text style={styles.title}>Welcome!</Text>
-      <Text style={styles.subtitle}>Enter your mobile number to continue</Text>
+      <Text style={styles.subtitle}>Login with your email and password</Text>
 
       <TextInput
         style={styles.input}
-        placeholder="Enter your mobile number"
-        value={mobile}
-        onChangeText={setMobile}
-        keyboardType="phone-pad"
+        placeholder="Enter your email"
+        value={email}
+        onChangeText={setEmail}
+        keyboardType="email-address"
+        autoCapitalize="none"
         placeholderTextColor="#9c8b7a"
       />
 
-      <TouchableOpacity style={styles.button} onPress={handleContinue}>
-        <Text style={styles.buttonText}>Continue</Text>
+      <TextInput
+        style={styles.input}
+        placeholder="Enter your password"
+        value={password}
+        onChangeText={setPassword}
+        secureTextEntry
+        placeholderTextColor="#9c8b7a"
+      />
+
+      <TouchableOpacity style={styles.button} onPress={handleLogin}>
+        <Text style={styles.buttonText}>Login</Text>
       </TouchableOpacity>
 
       <TouchableOpacity style={styles.registerButton} onPress={handleRegister}>

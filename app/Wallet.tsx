@@ -1,10 +1,50 @@
 import { FontAwesome5, MaterialIcons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
-import React from "react";
-import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { doc, getDoc, updateDoc } from "firebase/firestore";
+import React, { useEffect, useState } from "react";
+import { Alert, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { auth, db } from "../Firebase/firebaseConfig";
 
 export default function WalletScreen() {
   const router = useRouter();
+  const [walletBalance, setWalletBalance] = useState<number>(0);
+
+  const userEmail = auth.currentUser?.email;
+
+  // Fetch wallet balance on component mount
+  useEffect(() => {
+    const fetchWallet = async () => {
+      if (!userEmail) return;
+      try {
+        const userDocRef = doc(db, "customers", userEmail);
+        const userSnapshot = await getDoc(userDocRef);
+
+        if (userSnapshot.exists()) {
+          const userData = userSnapshot.data();
+          setWalletBalance(userData.wallet || 0);
+        }
+      } catch (error) {
+        console.error("Error fetching wallet:", error);
+        Alert.alert("Error", "Unable to fetch wallet balance");
+      }
+    };
+
+    fetchWallet();
+  }, [userEmail]);
+
+  // Function to add money to wallet
+  const handleLoadWallet = async (amount: number) => {
+    if (!userEmail) return;
+    try {
+      const userDocRef = doc(db, "customers", userEmail);
+      await updateDoc(userDocRef, { wallet: walletBalance + amount });
+      setWalletBalance(walletBalance + amount);
+      Alert.alert("Success", `₱${amount} added to your wallet!`);
+    } catch (error) {
+      console.error("Error updating wallet:", error);
+      Alert.alert("Error", "Failed to add money to wallet");
+    }
+  };
 
   return (
     <View style={styles.container}>
@@ -20,12 +60,17 @@ export default function WalletScreen() {
       {/* Balance Card */}
       <View style={styles.balanceCard}>
         <Text style={styles.walletLabel}>WALLET BALANCE</Text>
-        <Text style={styles.balanceText}>₱ 0.00</Text>
+        <Text style={styles.balanceText}>₱ {walletBalance.toFixed(2)}</Text>
       </View>
 
       {/* Action Buttons */}
       <View style={styles.grid}>
-        <TouchableOpacity style={styles.gridItem}>
+        <TouchableOpacity
+          style={styles.gridItem}
+          onPress={() =>
+            Alert.alert("Feature", "Buy at DEsperanza Cafe coming soon!")
+          }
+        >
           <FontAwesome5 name="shopping-basket" size={32} color="#4e342e" />
           <Text style={styles.gridTitle}>Buy at DEsperanza Cafe</Text>
           <Text style={styles.gridDesc}>
@@ -33,7 +78,10 @@ export default function WalletScreen() {
           </Text>
         </TouchableOpacity>
 
-        <TouchableOpacity style={styles.gridItem}>
+        <TouchableOpacity
+          style={styles.gridItem}
+          onPress={() => handleLoadWallet(100)}
+        >
           <MaterialIcons
             name="account-balance-wallet"
             size={32}
@@ -41,13 +89,18 @@ export default function WalletScreen() {
           />
           <Text style={styles.gridTitle}>Load Wallet</Text>
           <Text style={styles.gridDesc}>
-            Add money to your PAY wallet balance
+            Add ₱100 to your PAY wallet balance
           </Text>
         </TouchableOpacity>
       </View>
 
       {/* Manage Transactions */}
-      <TouchableOpacity style={styles.manageButton}>
+      <TouchableOpacity
+        style={styles.manageButton}
+        onPress={() =>
+          Alert.alert("Feature", "Manage Transactions coming soon!")
+        }
+      >
         <MaterialIcons name="receipt-long" size={22} color="#4e342e" />
         <Text style={styles.manageText}>Manage Transactions</Text>
       </TouchableOpacity>
@@ -58,7 +111,7 @@ export default function WalletScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#fdfcf9", // cream background
+    backgroundColor: "#fdfcf9",
     padding: 20,
   },
   header: {

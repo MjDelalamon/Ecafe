@@ -3,6 +3,7 @@ import React, { useState } from "react";
 import {
   ActivityIndicator,
   Alert,
+  Image,
   Modal,
   StyleSheet,
   Text,
@@ -17,13 +18,13 @@ export default function Register() {
   const [firstName, setFirstName] = useState<string>("");
   const [email, setEmail] = useState<string>("");
   const [mobile, setMobile] = useState<string>("");
-
+  const [password, setPassword] = useState<string>("");
   const [loading, setLoading] = useState(false);
 
   const router = useRouter();
 
   const handleContinue = async () => {
-    if (!lastName || !firstName || !email || !mobile) {
+    if (!lastName || !firstName || !email || !mobile || !password) {
       Alert.alert("Error", "Please fill all fields");
       return;
     }
@@ -33,29 +34,34 @@ export default function Register() {
     try {
       const fullName = `${firstName} ${lastName}`;
 
+      // 🔹 addUserToFirestore now stores password and uses email as document ID
       const result = await addUserToFirestore(
         fullName,
         email,
         mobile,
+        password,
         0,
         0,
-        "Active",
+        "Inactive", // inactive until email verified
         "Bronze"
       );
 
       if (result.success) {
-        console.log("✅ User stored in Firestore:", result.id);
+        Alert.alert(
+          "Verify Your Email",
+          "A verification email has been sent. Please verify your email before logging in."
+        );
 
-        // 🔹 Pass qrValue (Firestore doc ID) to QrTest
+        // 🔹 Navigate to QrTest with qrValue = email
         router.replace({
-          pathname: "/QrTest",
+          pathname: "/landingPage",
           params: {
-            qrValue: result.id, // ✅ use Firestore ID
+            qrValue: result.id, // Firestore doc ID (can be email)
             points: "0",
           },
         });
       } else {
-        Alert.alert("Error", "Failed to register user.");
+        Alert.alert("Error", `Failed to register user: ${result.error}`);
       }
     } catch (err) {
       Alert.alert("Error", "Something went wrong.");
@@ -71,6 +77,11 @@ export default function Register() {
 
   return (
     <View style={styles.container}>
+      <Image
+        source={require("../assets/images/logo.jpg")}
+        style={styles.logo}
+        resizeMode="contain"
+      />
       <Text style={styles.title}>Register</Text>
 
       <TextInput
@@ -103,6 +114,14 @@ export default function Register() {
         keyboardType="phone-pad"
         placeholderTextColor="#9c8b7a"
       />
+      <TextInput
+        style={styles.input}
+        placeholder="Password"
+        value={password}
+        onChangeText={setPassword}
+        secureTextEntry
+        placeholderTextColor="#9c8b7a"
+      />
 
       <TouchableOpacity style={styles.button} onPress={handleContinue}>
         <Text style={styles.buttonText}>Continue</Text>
@@ -111,7 +130,7 @@ export default function Register() {
         <Text style={styles.buttonText}>Back </Text>
       </TouchableOpacity>
 
-      {/* 🔹 Loading Modal */}
+      {/* Loading Modal */}
       <Modal visible={loading} transparent animationType="fade">
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
@@ -132,7 +151,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#fdfcf9",
   },
   title: {
-    fontSize: 28,
+    fontSize: 20,
     fontWeight: "bold",
     marginBottom: 20,
     color: "#4e342e",
@@ -148,6 +167,13 @@ const styles = StyleSheet.create({
     backgroundColor: "#fff",
     fontSize: 16,
     color: "#3e2723",
+  },
+  logo: {
+    width: 120,
+    height: 120,
+    marginBottom: 20,
+    marginLeft: "30%",
+    borderRadius: 60,
   },
   button: {
     backgroundColor: "#795548",

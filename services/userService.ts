@@ -1,11 +1,13 @@
-import { addDoc, collection, getDocs } from "firebase/firestore";
-import { db } from "../Firebase/firebaseConfig";
+// services/userService.ts
+import { createUserWithEmailAndPassword, sendEmailVerification } from "firebase/auth";
+import { doc, getDoc, setDoc } from "firebase/firestore";
+import { auth, db } from "../Firebase/firebaseConfig";
 
 type FirestoreResult =
   | {
       success: true;
-      id: string;
-      customerNumber: string;
+      id: string; // same as email
+      
       fullName: string;
       email: string;
       mobile: string;
@@ -21,19 +23,33 @@ export const addUserToFirestore = async (
   fullName: string,
   email: string,
   mobile: string,
+  password: string,
   points = 0,
   wallet = 0,
-  status = "Active",
+  status = "Inactive", // start as Inactive until email verified
   tier = "Bronze"
 ): Promise<FirestoreResult> => {
   try {
-    // 🔹 Generate sequential customerNumber
-    const snapshot = await getDocs(collection(db, "customers"));
-    const count = snapshot.size + 1;
-    const customerNumber = count.toString().padStart(4, "0");
+    // 🔹 Check if email already exists in Auth
+    const existingUser = await getDoc(doc(db, "customers", email));
+    if (existingUser.exists()) {
+      return { success: false, error: "Email already registered" };
+    }
+
+    // 🔹 Create user in Firebase Auth
+    const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+
+    // 🔹 Send email verification
+    if (userCredential.user) {
+      await sendEmailVerification(userCredential.user);
+    }
+
+    // 🔹 Generate customerNumber
+    const snapshot = await getDoc(doc(db, "customers", email));
+    
 
     const newCustomer = {
-      customerNumber,
+      
       fullName,
       email,
       mobile,
@@ -44,9 +60,10 @@ export const addUserToFirestore = async (
       createdAt: new Date(),
     };
 
-    const docRef = await addDoc(collection(db, "customers"), newCustomer);
+    // 🔹 Store in Firestore with email as ID
+    await setDoc(doc(db, "customers", email), newCustomer);
 
-    return { success: true, id: docRef.id, ...newCustomer };
+    return { success: true, id: email, ...newCustomer };
   } catch (error) {
     console.error("Error adding customer:", error);
     return { success: false, error };
