@@ -18,6 +18,10 @@ export default function QrTest() {
     router.push("/Wallet");
   };
 
+  const handleBack = () => {
+    router.push("/landingPage");
+  };
+
   return (
     <View style={styles.container}>
       {/* QR Code Section */}
@@ -51,11 +55,6 @@ export default function QrTest() {
         </TouchableOpacity>
 
         <TouchableOpacity style={styles.gridItem}>
-          <MaterialIcons name="receipt" size={32} color="#6d4c41" />
-          <Text style={styles.gridText}>Pay Bills</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity style={styles.gridItem}>
           <FontAwesome5 name="store" size={28} color="#795548" />
           <Text style={styles.gridText}>Browse</Text>
         </TouchableOpacity>
@@ -67,8 +66,8 @@ export default function QrTest() {
       </View>
 
       {/* Back Button */}
-      <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
-        <Text style={styles.backButtonText}>⬅ Back</Text>
+      <TouchableOpacity style={styles.backButton} onPress={handleBack}>
+        <Text style={styles.backButtonText}>⬅ Log out</Text>
       </TouchableOpacity>
     </View>
   );

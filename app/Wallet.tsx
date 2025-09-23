@@ -1,6 +1,6 @@
 import { FontAwesome5, MaterialIcons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
-import { doc, getDoc, updateDoc } from "firebase/firestore";
+import { doc, onSnapshot, updateDoc } from "firebase/firestore";
 import React, { useEffect, useState } from "react";
 import { Alert, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { auth, db } from "../Firebase/firebaseConfig";
@@ -11,25 +11,20 @@ export default function WalletScreen() {
 
   const userEmail = auth.currentUser?.email;
 
-  // Fetch wallet balance on component mount
+  // ✅ Real-time wallet updates
   useEffect(() => {
-    const fetchWallet = async () => {
-      if (!userEmail) return;
-      try {
-        const userDocRef = doc(db, "customers", userEmail);
-        const userSnapshot = await getDoc(userDocRef);
+    if (!userEmail) return;
 
-        if (userSnapshot.exists()) {
-          const userData = userSnapshot.data();
-          setWalletBalance(userData.wallet || 0);
-        }
-      } catch (error) {
-        console.error("Error fetching wallet:", error);
-        Alert.alert("Error", "Unable to fetch wallet balance");
+    const userDocRef = doc(db, "customers", userEmail);
+    const unsubscribe = onSnapshot(userDocRef, (docSnap) => {
+      if (docSnap.exists()) {
+        const data = docSnap.data();
+        setWalletBalance(data.wallet || 0);
       }
-    };
+    });
 
-    fetchWallet();
+    // cleanup listener on unmount
+    return () => unsubscribe();
   }, [userEmail]);
 
   // Function to add money to wallet
@@ -38,7 +33,6 @@ export default function WalletScreen() {
     try {
       const userDocRef = doc(db, "customers", userEmail);
       await updateDoc(userDocRef, { wallet: walletBalance + amount });
-      setWalletBalance(walletBalance + amount);
       Alert.alert("Success", `₱${amount} added to your wallet!`);
     } catch (error) {
       console.error("Error updating wallet:", error);

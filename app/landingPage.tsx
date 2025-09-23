@@ -3,69 +3,77 @@ import { signInWithEmailAndPassword } from "firebase/auth";
 import { doc, getDoc } from "firebase/firestore";
 import React, { useState } from "react";
 import {
-  Alert,
+  ActivityIndicator,
   Image,
+  Modal,
   StyleSheet,
   Text,
   TextInput,
   TouchableOpacity,
   View,
 } from "react-native";
-import { auth, db } from "../Firebase/firebaseConfig"; // import Firebase Auth and Firestore
+import { auth, db } from "../Firebase/firebaseConfig"; // Firebase config
 
 export default function LandingScreen() {
   const [email, setEmail] = useState<string>("");
   const [password, setPassword] = useState<string>("");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string>("");
+
   const router = useRouter();
 
   const handleLogin = async () => {
     if (!email || !password) {
-      Alert.alert("Error", "Please enter both email and password");
+      setError("⚠ Please enter both email and password");
       return;
     }
 
+    setLoading(true);
+    setError("");
+
     try {
-      // 🔹 Sign in with Firebase Auth
       const userCredential = await signInWithEmailAndPassword(
         auth,
         email,
         password
       );
 
-      // 🔹 Get the signed-in user's email from userCredential
       const userEmail = userCredential.user.email;
       if (!userEmail) {
-        Alert.alert("Error", "Unable to retrieve user email");
+        setError("⚠ Unable to retrieve user email");
+        setLoading(false);
         return;
       }
 
-      // 🔹 Fetch Firestore document using userEmail as ID
       const userDocRef = doc(db, "customers", userEmail);
       const userSnapshot = await getDoc(userDocRef);
 
       if (!userSnapshot.exists()) {
-        Alert.alert("Error", "User data not found in Firestore");
+        setError("⚠ User data not found in database");
+        setLoading(false);
         return;
       }
 
       const userData = userSnapshot.data();
 
-      // 🔹 Navigate to QrTest with Firestore ID (email) and points
+      setLoading(false);
+
       router.replace({
         pathname: "/QrTest",
         params: {
           qrValue: userEmail,
           points: userData.points.toString(),
-          mobile: userData.mobile, // pass mobile if exists
+          mobile: userData.mobile,
         },
       });
-    } catch (error: any) {
-      Alert.alert("Login Failed", error.message);
+    } catch (err: any) {
+      setError(`⚠ Invald email or password`);
+      setLoading(false);
     }
   };
 
   const handleRegister = () => {
-    router.push("/Register"); // navigate to Register page
+    router.push("/Register");
   };
 
   return (
@@ -77,6 +85,8 @@ export default function LandingScreen() {
       />
       <Text style={styles.title}>Welcome!</Text>
       <Text style={styles.subtitle}>Login with your email and password</Text>
+
+      {error ? <Text style={styles.errorText}>{error}</Text> : null}
 
       <TextInput
         style={styles.input}
@@ -104,6 +114,16 @@ export default function LandingScreen() {
       <TouchableOpacity style={styles.registerButton} onPress={handleRegister}>
         <Text style={styles.registerText}>Register</Text>
       </TouchableOpacity>
+
+      {/* 🔹 Loading Modal */}
+      <Modal transparent={true} animationType="fade" visible={loading}>
+        <View style={styles.modalBackground}>
+          <View style={styles.modalContent}>
+            <ActivityIndicator size="large" color="#795548" />
+            <Text style={styles.loadingText}>Logging in...</Text>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -131,7 +151,14 @@ const styles = StyleSheet.create({
   subtitle: {
     fontSize: 18,
     color: "#6d4c41",
-    marginBottom: 30,
+    marginBottom: 20,
+  },
+  errorText: {
+    color: "#d32f2f",
+    fontSize: 14,
+    fontWeight: "600",
+    marginBottom: 10,
+    textAlign: "center",
   },
   input: {
     width: "100%",
@@ -164,5 +191,24 @@ const styles = StyleSheet.create({
     color: "#795548",
     fontSize: 16,
     fontWeight: "bold",
+  },
+  modalBackground: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.4)",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  modalContent: {
+    backgroundColor: "#fff",
+    padding: 30,
+    borderRadius: 20,
+    alignItems: "center",
+    width: "70%",
+  },
+  loadingText: {
+    marginTop: 12,
+    fontSize: 16,
+    fontWeight: "500",
+    color: "#4e342e",
   },
 });
