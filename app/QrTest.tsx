@@ -22,6 +22,10 @@ export default function QrTest() {
     router.push("/landingPage");
   };
 
+  const handleBrowse = () => {
+    router.push("/menuList");
+  };
+
   return (
     <View style={styles.container}>
       {/* QR Code Section */}
@@ -54,7 +58,7 @@ export default function QrTest() {
           <Text style={styles.gridText}>Open Wallet</Text>
         </TouchableOpacity>
 
-        <TouchableOpacity style={styles.gridItem}>
+        <TouchableOpacity style={styles.gridItem} onPress={handleBrowse}>
           <FontAwesome5 name="store" size={28} color="#795548" />
           <Text style={styles.gridText}>Browse</Text>
         </TouchableOpacity>

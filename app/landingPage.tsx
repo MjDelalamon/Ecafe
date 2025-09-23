@@ -66,8 +66,8 @@ export default function LandingScreen() {
           mobile: userData.mobile,
         },
       });
-    } catch (err: any) {
-      setError(`⚠ Invald email or password`);
+    } catch {
+      setError(`⚠ Invald email or password `);
       setLoading(false);
     }
   };
