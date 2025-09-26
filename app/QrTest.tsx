@@ -1,18 +1,43 @@
 import { FontAwesome5, MaterialIcons } from "@expo/vector-icons";
-import { useLocalSearchParams, useRouter } from "expo-router";
+import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
+import { doc, getDoc } from "firebase/firestore";
+import React, { useCallback, useState } from "react";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import QRCode from "react-native-qrcode-svg";
+import { db } from "../Firebase/firebaseConfig";
 
 export default function QrTest() {
-  // ✅ accept qrValue instead of mobile
-  const { qrValue, points, mobile } = useLocalSearchParams<{
+  const { qrValue, mobile } = useLocalSearchParams<{
     qrValue: string;
-    points: string;
     mobile: string;
   }>();
 
   const router = useRouter();
-  const displayPoints = points ? parseFloat(points) : 0;
+  const [points, setPoints] = useState(0);
+  const [wallet, setWallet] = useState(0);
+
+  // ✅ Fetch customer balance
+  const fetchCustomerData = useCallback(async () => {
+    if (!qrValue) return;
+    try {
+      const customerRef = doc(db, "customers", qrValue);
+      const snap = await getDoc(customerRef);
+      if (snap.exists()) {
+        const data = snap.data();
+        setPoints(data.points || 0);
+        setWallet(data.wallet || 0);
+      }
+    } catch (err) {
+      console.error("Error fetching customer data:", err);
+    }
+  }, [qrValue]);
+
+  // ✅ Auto-refresh when screen focused
+  useFocusEffect(
+    useCallback(() => {
+      fetchCustomerData();
+    }, [fetchCustomerData])
+  );
 
   const handleWallet = () => {
     router.push("/Wallet");
@@ -23,7 +48,17 @@ export default function QrTest() {
   };
 
   const handleBrowse = () => {
-    router.push("/menuList");
+    router.push({
+      pathname: "/menuList",
+      params: { email: qrValue },
+    });
+  };
+
+  const handleHistory = () => {
+    router.push({
+      pathname: "/pointsHistory",
+      params: { email: qrValue },
+    });
   };
 
   return (
@@ -43,8 +78,10 @@ export default function QrTest() {
 
       {/* Rewards Balance */}
       <View style={styles.pointsBox}>
-        <Text style={styles.pointsLabel}>Rewards Balance</Text>
-        <Text style={styles.pointsValue}>{displayPoints.toFixed(2)} Pts.</Text>
+        <Text style={[styles.pointsLabel, { marginTop: 10 }]}>
+          Rewards Balance
+        </Text>
+        <Text style={styles.pointsValue}>{points.toFixed(2)} Pts.</Text>
       </View>
 
       {/* Action Buttons */}
@@ -66,6 +103,11 @@ export default function QrTest() {
         <TouchableOpacity style={styles.gridItem}>
           <MaterialIcons name="smartphone" size={32} color="#a1887f" />
           <Text style={styles.gridText}>Add e-Money</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity style={styles.gridItem} onPress={handleHistory}>
+          <MaterialIcons name="history" size={32} color="#6d4c41" />
+          <Text style={styles.gridText}>View History</Text>
         </TouchableOpacity>
       </View>
 

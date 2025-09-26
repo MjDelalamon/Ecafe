@@ -1,11 +1,22 @@
-import { Picker } from "@react-native-picker/picker"; // ✅ import Picker
-import { collection, getDocs } from "firebase/firestore";
+import { useLocalSearchParams } from "expo-router";
+import {
+  addDoc,
+  collection,
+  doc,
+  getDoc,
+  getDocs,
+  serverTimestamp,
+  updateDoc,
+} from "firebase/firestore";
 import React, { useEffect, useState } from "react";
 import {
+  Alert,
   FlatList,
+  Image,
   Modal,
   StyleSheet,
   Text,
+  TextInput,
   TouchableOpacity,
   View,
 } from "react-native";
@@ -14,158 +25,249 @@ import { db } from "../Firebase/firebaseConfig";
 type MenuItem = {
   id: string;
   name: string;
-  price: string;
-  category: string;
-  description: string;
-  availability: boolean;
+  description?: string;
+  price: number;
+  image?: string;
 };
 
 export default function MenuList() {
   const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
   const [filteredItems, setFilteredItems] = useState<MenuItem[]>([]);
-  const [categories, setCategories] = useState<string[]>([]);
-  const [activeCategory, setActiveCategory] = useState<string>("All");
-  const [showAvailableOnly, setShowAvailableOnly] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState("");
+
+  const [wallet, setWallet] = useState(0);
+  const [points, setPoints] = useState(0);
 
   const [selectedItem, setSelectedItem] = useState<MenuItem | null>(null);
-  const [showModal, setShowModal] = useState(false);
+  const [modalVisible, setModalVisible] = useState(false);
 
+  const { email } = useLocalSearchParams<{ email: string }>();
+  console.log("Received email in MenuList:", email);
+
+  // 🔄 Fetch menu
   useEffect(() => {
     const fetchMenu = async () => {
       try {
-        const menuRef = collection(db, "menu");
-        const snapshot = await getDocs(menuRef);
-        const items: MenuItem[] = snapshot.docs.map((doc) => ({
-          id: doc.id,
-          ...(doc.data() as Omit<MenuItem, "id">),
-        }));
+        const querySnapshot = await getDocs(collection(db, "menu"));
+        const items: MenuItem[] = [];
+        querySnapshot.forEach((docSnap) => {
+          const data = docSnap.data();
+          items.push({
+            id: docSnap.id,
+            name: data.name,
+            description: data.description,
+            price: data.price,
+            image: data.image,
+          });
+        });
         setMenuItems(items);
         setFilteredItems(items);
-
-        // unique categories
-        const uniqueCats = Array.from(
-          new Set(items.map((item) => item.category))
-        );
-        setCategories(["All", ...uniqueCats]);
       } catch (error) {
         console.error("Error fetching menu:", error);
+      } finally {
+        setLoading(false);
       }
     };
 
     fetchMenu();
   }, []);
 
-  // filter logic
+  // 🔄 Fetch customer wallet & points
   useEffect(() => {
-    let filtered = [...menuItems];
+    const fetchCustomer = async () => {
+      if (!email) return;
+      try {
+        const customerRef = doc(db, "customers", email);
+        const customerSnap = await getDoc(customerRef);
+        if (customerSnap.exists()) {
+          const data = customerSnap.data();
+          setWallet(data.wallet || 0);
+          setPoints(data.points || 0);
+        }
+      } catch (err) {
+        console.error("Error fetching customer:", err);
+      }
+    };
 
-    if (activeCategory !== "All") {
-      filtered = filtered.filter((item) => item.category === activeCategory);
+    fetchCustomer();
+  }, [email]);
+
+  const handleSearch = (text: string) => {
+    setSearch(text);
+    if (text.trim() === "") {
+      setFilteredItems(menuItems);
+    } else {
+      setFilteredItems(
+        menuItems.filter((item) =>
+          item.name.toLowerCase().includes(text.toLowerCase())
+        )
+      );
     }
-
-    if (showAvailableOnly) {
-      filtered = filtered.filter((item) => item.availability);
-    }
-
-    setFilteredItems(filtered);
-  }, [activeCategory, showAvailableOnly, menuItems]);
-
-  const handleSelectItem = (item: MenuItem) => {
-    setSelectedItem(item);
-    setShowModal(true);
   };
 
-  const renderItem = ({ item }: { item: MenuItem }) => (
-    <TouchableOpacity
-      style={styles.card}
-      onPress={() => handleSelectItem(item)}
-      disabled={!item.availability}
-    >
-      <View style={styles.info}>
-        <Text style={styles.name}>{item.name}</Text>
-        <Text style={styles.price}>₱ {item.price}</Text>
-        <Text style={styles.category}>{item.category}</Text>
-        <Text style={styles.description}>{item.description}</Text>
-        <Text
-          style={[
-            styles.availability,
-            { color: item.availability ? "green" : "red" },
-          ]}
-        >
-          {item.availability ? "Available" : "Not Available"}
-        </Text>
+  // 🛒 Open modal with item
+  const openModal = (item: MenuItem) => {
+    setSelectedItem(item);
+    setModalVisible(true);
+  };
+
+  // 💳 Handle payment
+  const handlePayment = async (method: "wallet" | "points" | "mixed") => {
+    if (!email || !selectedItem) {
+      Alert.alert("Error", "Missing customer or item data");
+      return;
+    }
+
+    try {
+      const customerRef = doc(db, "customers", email);
+      let newWallet = wallet;
+      let newPoints = points;
+
+      if (method === "wallet") {
+        newWallet -= selectedItem.price;
+      } else if (method === "points") {
+        newPoints -= selectedItem.price;
+      } else if (method === "mixed") {
+        let remaining = selectedItem.price;
+        if (wallet >= remaining) {
+          newWallet -= remaining;
+          remaining = 0;
+        } else {
+          remaining -= wallet;
+          newWallet = 0;
+          newPoints -= remaining;
+          remaining = 0;
+        }
+      }
+
+      // update in Firestore
+      await updateDoc(customerRef, { wallet: newWallet, points: newPoints });
+
+      // log transaction
+      await addDoc(collection(db, "customers", email, "transactions"), {
+        type:
+          method === "wallet"
+            ? "Wallet Payment"
+            : method === "points"
+            ? "Points Payment"
+            : "Mixed Payment",
+        item: selectedItem.name,
+        amount: selectedItem.price,
+        date: serverTimestamp(),
+      });
+
+      setWallet(newWallet);
+      setPoints(newPoints);
+      setModalVisible(false);
+
+      Alert.alert("Success", `Paid ₱${selectedItem.price} using ${method}.`);
+    } catch (err) {
+      console.error("Payment error:", err);
+      Alert.alert("Error", "Failed to process payment");
+    }
+  };
+
+  if (loading) {
+    return (
+      <View style={styles.container}>
+        <Text>Loading menu...</Text>
       </View>
-    </TouchableOpacity>
-  );
+    );
+  }
 
   return (
     <View style={styles.container}>
-      {/* Dropdown for category filter */}
-      <View style={styles.dropdownContainer}>
-        <Text style={styles.filterLabel}>Category:</Text>
-        <Picker
-          selectedValue={activeCategory}
-          onValueChange={(value) => setActiveCategory(value)}
-          style={styles.dropdown}
-        >
-          {categories.map((cat) => (
-            <Picker.Item key={cat} label={cat} value={cat} />
-          ))}
-        </Picker>
-      </View>
+      {/* 🔎 Search Bar */}
+      <TextInput
+        style={styles.searchBar}
+        placeholder="Search menu..."
+        value={search}
+        onChangeText={handleSearch}
+      />
 
-      {/* Availability toggle */}
-      <TouchableOpacity
-        style={[styles.filterButton, showAvailableOnly && styles.filterActive]}
-        onPress={() => setShowAvailableOnly(!showAvailableOnly)}
-      >
-        <Text
-          style={[
-            styles.filterText,
-            showAvailableOnly && styles.filterTextActive,
-          ]}
-        >
-          Available Only
-        </Text>
-      </TouchableOpacity>
-
-      {/* Menu List */}
+      {/* 📋 Menu List */}
       <FlatList
         data={filteredItems}
         keyExtractor={(item) => item.id}
-        renderItem={renderItem}
-        contentContainerStyle={{ paddingBottom: 20 }}
+        renderItem={({ item }) => (
+          <TouchableOpacity style={styles.card} onPress={() => openModal(item)}>
+            {item.image && (
+              <Image source={{ uri: item.image }} style={styles.image} />
+            )}
+            <View style={styles.cardContent}>
+              <Text style={styles.itemName}>{item.name}</Text>
+              <Text style={styles.itemDesc}>{item.description}</Text>
+              <Text style={styles.itemPrice}>₱{item.price}</Text>
+            </View>
+          </TouchableOpacity>
+        )}
       />
 
-      {/* Payment Modal */}
-      <Modal visible={showModal} transparent animationType="slide">
+      {/* 🪟 Modal for Payments */}
+      <Modal
+        animationType="slide"
+        transparent={true}
+        visible={modalVisible}
+        onRequestClose={() => setModalVisible(false)}
+      >
         <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
+          <View style={styles.modalBox}>
             {selectedItem && (
               <>
                 <Text style={styles.modalTitle}>{selectedItem.name}</Text>
-                <Text style={styles.modalPrice}>₱ {selectedItem.price}</Text>
                 <Text style={styles.modalDesc}>{selectedItem.description}</Text>
+                <Text style={styles.modalPrice}>₱{selectedItem.price}</Text>
 
-                <View style={styles.paymentOptions}>
+                <Text style={styles.balanceText}>
+                  Wallet: ₱{wallet} | Points: {points}
+                </Text>
+
+                <View style={styles.buttonGroup}>
                   <TouchableOpacity
-                    style={styles.payButton}
-                    onPress={() => alert("Pay with Points")}
+                    style={[
+                      styles.payButton,
+                      wallet < selectedItem.price && styles.disabledButton,
+                    ]}
+                    disabled={wallet < selectedItem.price}
+                    onPress={() => handlePayment("wallet")}
+                  >
+                    <Text style={styles.payText}>Pay with Wallet</Text>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    style={[
+                      styles.payButton,
+                      points < selectedItem.price && styles.disabledButton,
+                    ]}
+                    disabled={points < selectedItem.price}
+                    onPress={() => handlePayment("points")}
                   >
                     <Text style={styles.payText}>Pay with Points</Text>
                   </TouchableOpacity>
 
                   <TouchableOpacity
-                    style={styles.payButton}
-                    onPress={() => alert("Pay with Wallet")}
+                    style={[
+                      styles.payButton,
+                      wallet + points < selectedItem.price &&
+                        styles.disabledButton,
+                    ]}
+                    disabled={wallet + points < selectedItem.price}
+                    onPress={() => handlePayment("mixed")}
                   >
-                    <Text style={styles.payText}>Pay with Wallet</Text>
+                    <Text style={styles.payText}>Pay with Wallet + Points</Text>
                   </TouchableOpacity>
                 </View>
 
+                {wallet + points < selectedItem.price && (
+                  <Text style={styles.notice}>
+                    ⚠ Insufficient balance for this item
+                  </Text>
+                )}
+
                 <TouchableOpacity
                   style={styles.closeButton}
-                  onPress={() => setShowModal(false)}
+                  onPress={() => setModalVisible(false)}
                 >
                   <Text style={styles.closeText}>Close</Text>
                 </TouchableOpacity>
@@ -181,105 +283,120 @@ export default function MenuList() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#fdfcf9",
     padding: 16,
-  },
-  dropdownContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginBottom: 16,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderWidth: 1,
-    borderColor: "#4e342e",
-    borderRadius: 12,
     backgroundColor: "#fdfcf9",
-    shadowColor: "#000",
-    shadowOpacity: 0.05,
-    shadowOffset: { width: 0, height: 2 },
-    shadowRadius: 3,
-    elevation: 2,
   },
-  filterLabel: {
-    fontSize: 15,
-    fontWeight: "600",
-    marginRight: 8,
-    color: "#4e342e",
-  },
-  dropdown: {
-    flex: 1,
-    color: "#4e342e",
-    fontSize: 15,
-    fontWeight: "500",
+  searchBar: {
+    backgroundColor: "#fff",
+    padding: 10,
+    borderRadius: 8,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: "#ddd",
   },
   card: {
-    backgroundColor: "#ddddddff",
-    borderRadius: 10,
-    padding: 12,
+    flexDirection: "row",
+    backgroundColor: "#fff",
+    borderRadius: 12,
     marginBottom: 12,
-    elevation: 2,
+    padding: 12,
     shadowColor: "#000",
     shadowOpacity: 0.1,
-    shadowOffset: { width: 0, height: 2 },
     shadowRadius: 4,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 3,
   },
-  info: { flex: 1 },
-  name: { fontSize: 18, fontWeight: "bold", color: "#3e2723" },
-  price: {
+  image: {
+    width: 80,
+    height: 80,
+    borderRadius: 8,
+    marginRight: 12,
+  },
+  cardContent: {
+    flex: 1,
+    justifyContent: "center",
+  },
+  itemName: {
     fontSize: 16,
-    fontWeight: "600",
+    fontWeight: "bold",
     color: "#4e342e",
+  },
+  itemDesc: {
+    fontSize: 14,
+    color: "#6d4c41",
     marginVertical: 4,
   },
-  category: { fontSize: 14, color: "#6d4c41" },
-  description: { fontSize: 12, color: "#888", marginVertical: 4 },
-  availability: { fontSize: 12, fontWeight: "600" },
-  filterButton: {
-    backgroundColor: "#eee",
-    paddingVertical: 6,
-    paddingHorizontal: 12,
-    borderRadius: 16,
-    marginBottom: 12,
-    alignSelf: "flex-start",
+  itemPrice: {
+    fontSize: 15,
+    fontWeight: "600",
+    marginBottom: 6,
+    color: "#795548",
   },
-  filterActive: { backgroundColor: "#4e342e" },
-  filterText: { fontSize: 13, color: "#4e342e", fontWeight: "500" },
-  filterTextActive: { color: "#fff", fontWeight: "600" },
   modalOverlay: {
     flex: 1,
     backgroundColor: "rgba(0,0,0,0.5)",
     justifyContent: "center",
     alignItems: "center",
   },
-  modalContent: {
+  modalBox: {
     backgroundColor: "#fff",
-    borderRadius: 12,
     padding: 20,
-    width: "80%",
+    borderRadius: 16,
+    width: "85%",
     alignItems: "center",
   },
   modalTitle: {
     fontSize: 20,
     fontWeight: "bold",
-    color: "#3e2723",
-    marginBottom: 8,
+    color: "#4e342e",
+    marginBottom: 6,
   },
-  modalPrice: { fontSize: 18, color: "#4e342e", marginBottom: 8 },
   modalDesc: {
     fontSize: 14,
-    color: "#555",
+    color: "#6d4c41",
     textAlign: "center",
-    marginBottom: 20,
+    marginBottom: 8,
   },
-  paymentOptions: { flexDirection: "row", justifyContent: "space-between" },
+  modalPrice: {
+    fontSize: 18,
+    fontWeight: "bold",
+    color: "#795548",
+    marginBottom: 10,
+  },
+  balanceText: {
+    fontSize: 14,
+    color: "#4e342e",
+    marginBottom: 12,
+  },
+  buttonGroup: {
+    width: "100%",
+  },
   payButton: {
-    backgroundColor: "#4e342e",
+    backgroundColor: "#6d4c41",
     paddingVertical: 10,
-    paddingHorizontal: 16,
     borderRadius: 8,
-    marginHorizontal: 8,
+    marginVertical: 6,
+    alignItems: "center",
   },
-  payText: { color: "#fff", fontWeight: "600" },
-  closeButton: { marginTop: 20 },
-  closeText: { color: "#4e342e", fontWeight: "600", fontSize: 14 },
+  disabledButton: {
+    backgroundColor: "#ccc",
+  },
+  payText: {
+    color: "#fff",
+    fontWeight: "bold",
+  },
+  notice: {
+    color: "red",
+    fontSize: 13,
+    marginTop: 8,
+  },
+  closeButton: {
+    marginTop: 10,
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+  },
+  closeText: {
+    color: "#6d4c41",
+    fontWeight: "bold",
+  },
 });
