@@ -1,3 +1,4 @@
+import { Picker } from "@react-native-picker/picker";
 import { useLocalSearchParams } from "expo-router";
 import {
   addDoc,
@@ -6,11 +7,10 @@ import {
   getDoc,
   getDocs,
   serverTimestamp,
-  updateDoc,
 } from "firebase/firestore";
 import React, { useEffect, useState } from "react";
 import {
-  Alert,
+  ActivityIndicator,
   FlatList,
   Image,
   Modal,
@@ -26,16 +26,23 @@ type MenuItem = {
   id: string;
   name: string;
   description?: string;
+  category: string;
   price: number;
   image?: string;
+  availability: boolean;
 };
 
 export default function MenuList() {
   const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
   const [filteredItems, setFilteredItems] = useState<MenuItem[]>([]);
   const [loading, setLoading] = useState(true);
-  const [search, setSearch] = useState("");
+  const [loadingModalVisible, setLoadingModalVisible] = useState(false);
 
+  const [alertVisible, setAlertVisible] = useState(false);
+  const [alertMessage, setAlertMessage] = useState("");
+  const [alertType, setAlertType] = useState<"success" | "error">("success");
+
+  const [search, setSearch] = useState("");
   const [wallet, setWallet] = useState(0);
   const [points, setPoints] = useState(0);
 
@@ -43,7 +50,9 @@ export default function MenuList() {
   const [modalVisible, setModalVisible] = useState(false);
 
   const { email } = useLocalSearchParams<{ email: string }>();
-  console.log("Received email in MenuList:", email);
+
+  const [categories, setCategories] = useState<string[]>([]);
+  const [selectedCategory, setSelectedCategory] = useState<string>("All");
 
   // 🔄 Fetch menu
   useEffect(() => {
@@ -51,20 +60,28 @@ export default function MenuList() {
       try {
         const querySnapshot = await getDocs(collection(db, "menu"));
         const items: MenuItem[] = [];
+        const categorySet = new Set<string>();
+
         querySnapshot.forEach((docSnap) => {
           const data = docSnap.data();
           items.push({
             id: docSnap.id,
             name: data.name,
             description: data.description,
-            price: data.price,
+            price: Number(data.price),
             image: data.image,
+            availability: data.availability ?? true,
+            category: data.category || "Uncategorized",
           });
+          categorySet.add(data.category || "Uncategorized");
         });
+
         setMenuItems(items);
         setFilteredItems(items);
+        setCategories(["All", ...Array.from(categorySet)]);
       } catch (error) {
         console.error("Error fetching menu:", error);
+        showAlert("Failed to fetch menu", "error");
       } finally {
         setLoading(false);
       }
@@ -87,90 +104,83 @@ export default function MenuList() {
         }
       } catch (err) {
         console.error("Error fetching customer:", err);
+        showAlert("Failed to fetch customer info", "error");
       }
     };
 
     fetchCustomer();
   }, [email]);
 
-  const handleSearch = (text: string) => {
-    setSearch(text);
-    if (text.trim() === "") {
-      setFilteredItems(menuItems);
-    } else {
-      setFilteredItems(
-        menuItems.filter((item) =>
-          item.name.toLowerCase().includes(text.toLowerCase())
-        )
-      );
-    }
+  // Alert function
+  const showAlert = (message: string, type: "success" | "error") => {
+    setAlertMessage(message);
+    setAlertType(type);
+    setAlertVisible(true);
   };
 
-  // 🛒 Open modal with item
+  // 🔎 Search filter
+  const handleSearch = (text: string) => {
+    setSearch(text);
+    applyFilters(text, selectedCategory);
+  };
+
+  const applyFilters = (searchText: string, category: string) => {
+    let items = menuItems;
+
+    if (category !== "All") {
+      items = items.filter((item) => item.category === category);
+    }
+
+    if (searchText.trim() !== "") {
+      items = items.filter((item) =>
+        item.name.toLowerCase().includes(searchText.toLowerCase())
+      );
+    }
+
+    setFilteredItems(items);
+  };
+
   const openModal = (item: MenuItem) => {
     setSelectedItem(item);
     setModalVisible(true);
   };
 
-  // 💳 Handle payment
-  const handlePayment = async (method: "wallet" | "points" | "mixed") => {
+  /// 💳 Place order
+  const handlePlaceOrder = async (method: "wallet" | "points" | "mixed") => {
     if (!email || !selectedItem) {
-      Alert.alert("Error", "Missing customer or item data");
+      showAlert("Missing customer or item data", "error");
       return;
     }
 
     try {
-      const customerRef = doc(db, "customers", email);
-      let newWallet = wallet;
-      let newPoints = points;
-
-      if (method === "wallet") {
-        newWallet -= selectedItem.price;
-      } else if (method === "points") {
-        newPoints -= selectedItem.price;
-      } else if (method === "mixed") {
-        let remaining = selectedItem.price;
-        if (wallet >= remaining) {
-          newWallet -= remaining;
-          remaining = 0;
-        } else {
-          remaining -= wallet;
-          newWallet = 0;
-          newPoints -= remaining;
-          remaining = 0;
-        }
-      }
-
-      // update in Firestore
-      await updateDoc(customerRef, { wallet: newWallet, points: newPoints });
-
-      // log transaction
-      await addDoc(collection(db, "customers", email, "transactions"), {
-        type:
-          method === "wallet"
-            ? "Wallet Payment"
-            : method === "points"
-            ? "Points Payment"
-            : "Mixed Payment",
+      setLoadingModalVisible(true);
+      await addDoc(collection(db, "orders"), {
+        customerEmail: email,
         item: selectedItem.name,
+        category: selectedItem.category,
         amount: selectedItem.price,
+        paymentMethod: method,
+        status: "Pending",
         date: serverTimestamp(),
       });
 
-      setWallet(newWallet);
-      setPoints(newPoints);
       setModalVisible(false);
-
-      Alert.alert("Success", `Paid ₱${selectedItem.price} using ${method}.`);
+      showAlert(
+        `Order placed for ${selectedItem.name}. Waiting for admin confirmation.`,
+        "success"
+      );
     } catch (err) {
-      console.error("Payment error:", err);
-      Alert.alert("Error", "Failed to process payment");
+      console.error("Error placing order:", err);
+      showAlert("Failed to place order", "error");
+    } finally {
+      setLoadingModalVisible(false);
     }
   };
 
   if (loading) {
     return (
       <View style={styles.container}>
+        <ActivityIndicator size="large" color="#6d4c41" />
         <Text>Loading menu...</Text>
       </View>
     );
@@ -186,12 +196,32 @@ export default function MenuList() {
         onChangeText={handleSearch}
       />
 
+      {/* 🔽 Category Filter */}
+      <View style={styles.dropdownContainer}>
+        <Picker
+          selectedValue={selectedCategory}
+          onValueChange={(value) => {
+            setSelectedCategory(value);
+            applyFilters(search, value);
+          }}
+          style={styles.dropdown}
+        >
+          {categories.map((cat) => (
+            <Picker.Item key={cat} label={cat} value={cat} />
+          ))}
+        </Picker>
+      </View>
+
       {/* 📋 Menu List */}
       <FlatList
         data={filteredItems}
         keyExtractor={(item) => item.id}
         renderItem={({ item }) => (
-          <TouchableOpacity style={styles.card} onPress={() => openModal(item)}>
+          <TouchableOpacity
+            style={[styles.card, !item.availability && styles.unavailableCard]}
+            onPress={() => item.availability && openModal(item)}
+            disabled={!item.availability}
+          >
             {item.image && (
               <Image source={{ uri: item.image }} style={styles.image} />
             )}
@@ -199,12 +229,15 @@ export default function MenuList() {
               <Text style={styles.itemName}>{item.name}</Text>
               <Text style={styles.itemDesc}>{item.description}</Text>
               <Text style={styles.itemPrice}>₱{item.price}</Text>
+              {!item.availability && (
+                <Text style={styles.unavailableText}>Unavailable</Text>
+              )}
             </View>
           </TouchableOpacity>
         )}
       />
 
-      {/* 🪟 Modal for Payments */}
+      {/* 🪟 Modal for Payment */}
       <Modal
         animationType="slide"
         transparent={true}
@@ -225,45 +258,26 @@ export default function MenuList() {
 
                 <View style={styles.buttonGroup}>
                   <TouchableOpacity
-                    style={[
-                      styles.payButton,
-                      wallet < selectedItem.price && styles.disabledButton,
-                    ]}
-                    disabled={wallet < selectedItem.price}
-                    onPress={() => handlePayment("wallet")}
+                    style={styles.payButton}
+                    onPress={() => handlePlaceOrder("wallet")}
                   >
                     <Text style={styles.payText}>Pay with Wallet</Text>
                   </TouchableOpacity>
 
                   <TouchableOpacity
-                    style={[
-                      styles.payButton,
-                      points < selectedItem.price && styles.disabledButton,
-                    ]}
-                    disabled={points < selectedItem.price}
-                    onPress={() => handlePayment("points")}
+                    style={styles.payButton}
+                    onPress={() => handlePlaceOrder("points")}
                   >
                     <Text style={styles.payText}>Pay with Points</Text>
                   </TouchableOpacity>
 
                   <TouchableOpacity
-                    style={[
-                      styles.payButton,
-                      wallet + points < selectedItem.price &&
-                        styles.disabledButton,
-                    ]}
-                    disabled={wallet + points < selectedItem.price}
-                    onPress={() => handlePayment("mixed")}
+                    style={styles.payButton}
+                    onPress={() => handlePlaceOrder("mixed")}
                   >
                     <Text style={styles.payText}>Pay with Wallet + Points</Text>
                   </TouchableOpacity>
                 </View>
-
-                {wallet + points < selectedItem.price && (
-                  <Text style={styles.notice}>
-                    ⚠ Insufficient balance for this item
-                  </Text>
-                )}
 
                 <TouchableOpacity
                   style={styles.closeButton}
@@ -276,16 +290,44 @@ export default function MenuList() {
           </View>
         </View>
       </Modal>
+
+      {/* 🔄 Loading Modal */}
+      <Modal transparent={true} visible={loadingModalVisible}>
+        <View style={styles.modalOverlay}>
+          <View style={styles.loadingBox}>
+            <ActivityIndicator size="large" color="#6d4c41" />
+            <Text style={{ marginTop: 10, color: "#4e342e" }}>
+              Processing...
+            </Text>
+          </View>
+        </View>
+      </Modal>
+
+      {/* ✅❌ Custom Alert Modal */}
+      <Modal transparent={true} visible={alertVisible}>
+        <View style={styles.modalOverlay}>
+          <View
+            style={[
+              styles.alertBox,
+              alertType === "success" ? styles.successBox : styles.errorBox,
+            ]}
+          >
+            <Text style={styles.alertText}>{alertMessage}</Text>
+            <TouchableOpacity
+              style={styles.alertButton}
+              onPress={() => setAlertVisible(false)}
+            >
+              <Text style={styles.alertButtonText}>OK</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    padding: 16,
-    backgroundColor: "#fdfcf9",
-  },
+  container: { flex: 1, padding: 16, backgroundColor: "#fdfcf9" },
   searchBar: {
     backgroundColor: "#fff",
     padding: 10,
@@ -306,26 +348,10 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 2 },
     elevation: 3,
   },
-  image: {
-    width: 80,
-    height: 80,
-    borderRadius: 8,
-    marginRight: 12,
-  },
-  cardContent: {
-    flex: 1,
-    justifyContent: "center",
-  },
-  itemName: {
-    fontSize: 16,
-    fontWeight: "bold",
-    color: "#4e342e",
-  },
-  itemDesc: {
-    fontSize: 14,
-    color: "#6d4c41",
-    marginVertical: 4,
-  },
+  image: { width: 80, height: 80, borderRadius: 8, marginRight: 12 },
+  cardContent: { flex: 1, justifyContent: "center" },
+  itemName: { fontSize: 16, fontWeight: "bold", color: "#4e342e" },
+  itemDesc: { fontSize: 14, color: "#6d4c41", marginVertical: 4 },
   itemPrice: {
     fontSize: 15,
     fontWeight: "600",
@@ -345,32 +371,11 @@ const styles = StyleSheet.create({
     width: "85%",
     alignItems: "center",
   },
-  modalTitle: {
-    fontSize: 20,
-    fontWeight: "bold",
-    color: "#4e342e",
-    marginBottom: 6,
-  },
-  modalDesc: {
-    fontSize: 14,
-    color: "#6d4c41",
-    textAlign: "center",
-    marginBottom: 8,
-  },
-  modalPrice: {
-    fontSize: 18,
-    fontWeight: "bold",
-    color: "#795548",
-    marginBottom: 10,
-  },
-  balanceText: {
-    fontSize: 14,
-    color: "#4e342e",
-    marginBottom: 12,
-  },
-  buttonGroup: {
-    width: "100%",
-  },
+  modalTitle: { fontSize: 20, fontWeight: "bold", color: "#4e342e" },
+  modalDesc: { fontSize: 14, color: "#6d4c41", textAlign: "center" },
+  modalPrice: { fontSize: 18, fontWeight: "bold", color: "#795548" },
+  balanceText: { fontSize: 14, color: "#4e342e", marginBottom: 12 },
+  buttonGroup: { width: "100%" },
   payButton: {
     backgroundColor: "#6d4c41",
     paddingVertical: 10,
@@ -378,25 +383,44 @@ const styles = StyleSheet.create({
     marginVertical: 6,
     alignItems: "center",
   },
-  disabledButton: {
-    backgroundColor: "#ccc",
+  payText: { color: "#fff", fontWeight: "bold" },
+  closeButton: { marginTop: 10, paddingVertical: 8, paddingHorizontal: 16 },
+  closeText: { color: "#6d4c41", fontWeight: "bold" },
+  unavailableCard: { opacity: 0.5, backgroundColor: "#eee" },
+  unavailableText: { color: "red", fontWeight: "bold", marginTop: 4 },
+  dropdownContainer: {
+    backgroundColor: "#fff",
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: "#ddd",
+    marginBottom: 12,
   },
-  payText: {
-    color: "#fff",
-    fontWeight: "bold",
+  dropdown: { height: 50, width: "100%" },
+
+  // Loading Modal
+  loadingBox: {
+    backgroundColor: "#fff",
+    padding: 20,
+    borderRadius: 12,
+    alignItems: "center",
   },
-  notice: {
-    color: "red",
-    fontSize: 13,
-    marginTop: 8,
+
+  // Alert Modal
+  alertBox: {
+    backgroundColor: "#fff",
+    padding: 20,
+    borderRadius: 12,
+    width: "80%",
+    alignItems: "center",
   },
-  closeButton: {
-    marginTop: 10,
+  successBox: { borderLeftWidth: 6, borderLeftColor: "green" },
+  errorBox: { borderLeftWidth: 6, borderLeftColor: "red" },
+  alertText: { fontSize: 16, textAlign: "center", marginBottom: 10 },
+  alertButton: {
+    backgroundColor: "#6d4c41",
+    paddingHorizontal: 20,
     paddingVertical: 8,
-    paddingHorizontal: 16,
+    borderRadius: 8,
   },
-  closeText: {
-    color: "#6d4c41",
-    fontWeight: "bold",
-  },
+  alertButtonText: { color: "#fff", fontWeight: "bold" },
 });

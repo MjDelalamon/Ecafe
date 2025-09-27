@@ -14,7 +14,6 @@ export default function QrTest() {
 
   const router = useRouter();
   const [points, setPoints] = useState(0);
-  const [wallet, setWallet] = useState(0);
 
   // ✅ Fetch customer balance
   const fetchCustomerData = useCallback(async () => {
@@ -25,7 +24,6 @@ export default function QrTest() {
       if (snap.exists()) {
         const data = snap.data();
         setPoints(data.points || 0);
-        setWallet(data.wallet || 0);
       }
     } catch (err) {
       console.error("Error fetching customer data:", err);
