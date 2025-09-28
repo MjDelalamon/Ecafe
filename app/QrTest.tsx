@@ -2,7 +2,13 @@ import { FontAwesome5, MaterialIcons } from "@expo/vector-icons";
 import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
 import { doc, getDoc } from "firebase/firestore";
 import React, { useCallback, useState } from "react";
-import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import {
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
 import QRCode from "react-native-qrcode-svg";
 import { db } from "../Firebase/firebaseConfig";
 
@@ -59,6 +65,13 @@ export default function QrTest() {
     });
   };
 
+  const handleOrders = () => {
+    router.push({
+      pathname: "/orders",
+      params: { email: qrValue },
+    });
+  };
+
   return (
     <View style={styles.container}>
       {/* QR Code Section */}
@@ -69,45 +82,52 @@ export default function QrTest() {
           <Text style={styles.error}>No QR code found</Text>
         )}
         <Text style={styles.barcodeText}>{mobile}</Text>
+        <View style={styles.pointsBox}>
+          <Text style={[styles.pointsLabel, { marginTop: 10 }]}>
+            Rewards Balance
+          </Text>
+          <Text style={styles.pointsValue}>{points.toFixed(2)} Pts.</Text>
+        </View>
         <Text style={styles.scanHint}>
           SCAN YOUR BARCODE BEFORE PAYMENT TO EARN POINTS
         </Text>
       </View>
 
       {/* Rewards Balance */}
-      <View style={styles.pointsBox}>
-        <Text style={[styles.pointsLabel, { marginTop: 10 }]}>
-          Rewards Balance
-        </Text>
-        <Text style={styles.pointsValue}>{points.toFixed(2)} Pts.</Text>
-      </View>
 
       {/* Action Buttons */}
-      <View style={styles.grid}>
-        <TouchableOpacity style={styles.gridItem} onPress={handleWallet}>
-          <MaterialIcons
-            name="account-balance-wallet"
-            size={32}
-            color="#4e342e"
-          />
-          <Text style={styles.gridText}>Open Wallet</Text>
-        </TouchableOpacity>
+      <ScrollView style={{ flex: 1, width: "100%" }}>
+        <View style={styles.grid}>
+          <TouchableOpacity style={styles.gridItem} onPress={handleWallet}>
+            <MaterialIcons
+              name="account-balance-wallet"
+              size={32}
+              color="#4e342e"
+            />
+            <Text style={styles.gridText}>Open Wallet</Text>
+          </TouchableOpacity>
 
-        <TouchableOpacity style={styles.gridItem} onPress={handleBrowse}>
-          <FontAwesome5 name="store" size={28} color="#795548" />
-          <Text style={styles.gridText}>Browse</Text>
-        </TouchableOpacity>
+          <TouchableOpacity style={styles.gridItem} onPress={handleBrowse}>
+            <FontAwesome5 name="store" size={28} color="#795548" />
+            <Text style={styles.gridText}>Browse</Text>
+          </TouchableOpacity>
 
-        <TouchableOpacity style={styles.gridItem}>
-          <MaterialIcons name="smartphone" size={32} color="#a1887f" />
-          <Text style={styles.gridText}>Add e-Money</Text>
-        </TouchableOpacity>
+          <TouchableOpacity style={styles.gridItem}>
+            <MaterialIcons name="smartphone" size={32} color="#a1887f" />
+            <Text style={styles.gridText}>Add e-Money</Text>
+          </TouchableOpacity>
 
-        <TouchableOpacity style={styles.gridItem} onPress={handleHistory}>
-          <MaterialIcons name="history" size={32} color="#6d4c41" />
-          <Text style={styles.gridText}>View History</Text>
-        </TouchableOpacity>
-      </View>
+          <TouchableOpacity style={styles.gridItem} onPress={handleHistory}>
+            <MaterialIcons name="history" size={32} color="#6d4c41" />
+            <Text style={styles.gridText}>View History</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity style={styles.gridItem} onPress={handleOrders}>
+            <MaterialIcons name="receipt-long" size={32} color="#6d4c41" />
+            <Text style={styles.gridText}>Orders</Text>
+          </TouchableOpacity>
+        </View>
+      </ScrollView>
 
       {/* Back Button */}
       <TouchableOpacity style={styles.backButton} onPress={handleBack}>
