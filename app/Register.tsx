@@ -124,10 +124,10 @@ export default function Register() {
       />
 
       <TouchableOpacity style={styles.button} onPress={handleContinue}>
-        <Text style={styles.buttonText}>Continue</Text>
+        <Text style={styles.buttonText}>Register</Text>
       </TouchableOpacity>
       <TouchableOpacity style={styles.button} onPress={Back}>
-        <Text style={styles.buttonText}>Back </Text>
+        <Text style={styles.buttonText}>⬅ Back </Text>
       </TouchableOpacity>
 
       {/* Loading Modal */}

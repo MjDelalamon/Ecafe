@@ -40,6 +40,18 @@ export default function WalletScreen() {
     }
   };
 
+  const Buy = async () => {
+    router.push({ pathname: "/menuList", params: { qrValue: userEmail } });
+  };
+
+  const LogsHistory = async () => {
+    if (!userEmail) return;
+    router.push({
+      pathname: "/LogsHistory",
+      params: { email: userEmail },
+    });
+  };
+
   return (
     <View style={styles.container}>
       {/* Header */}
@@ -59,12 +71,7 @@ export default function WalletScreen() {
 
       {/* Action Buttons */}
       <View style={styles.grid}>
-        <TouchableOpacity
-          style={styles.gridItem}
-          onPress={() =>
-            Alert.alert("Feature", "Buy at DEsperanza Cafe coming soon!")
-          }
-        >
+        <TouchableOpacity style={styles.gridItem} onPress={Buy}>
           <FontAwesome5 name="shopping-basket" size={32} color="#4e342e" />
           <Text style={styles.gridTitle}>Buy at DEsperanza Cafe</Text>
           <Text style={styles.gridDesc}>
@@ -82,21 +89,14 @@ export default function WalletScreen() {
             color="#6d4c41"
           />
           <Text style={styles.gridTitle}>Load Wallet</Text>
-          <Text style={styles.gridDesc}>
-            Add ₱100 to your PAY wallet balance
-          </Text>
+          <Text style={styles.gridDesc}>Add to your PAY wallet balance</Text>
         </TouchableOpacity>
       </View>
 
       {/* Manage Transactions */}
-      <TouchableOpacity
-        style={styles.manageButton}
-        onPress={() =>
-          Alert.alert("Feature", "Manage Transactions coming soon!")
-        }
-      >
+      <TouchableOpacity style={styles.manageButton} onPress={LogsHistory}>
         <MaterialIcons name="receipt-long" size={22} color="#4e342e" />
-        <Text style={styles.manageText}>Manage Transactions</Text>
+        <Text style={styles.manageText}> Transactions</Text>
       </TouchableOpacity>
     </View>
   );

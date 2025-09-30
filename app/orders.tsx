@@ -1,5 +1,15 @@
 import { useLocalSearchParams } from "expo-router";
-import { collection, getDocs, query, where } from "firebase/firestore";
+import {
+  addDoc,
+  collection,
+  deleteDoc,
+  doc,
+  getDoc,
+  getDocs,
+  query,
+  updateDoc,
+  where,
+} from "firebase/firestore";
 import React, { useEffect, useState } from "react";
 import {
   ActivityIndicator,
@@ -40,16 +50,14 @@ export default function Orders() {
         );
         const snap = await getDocs(q);
 
-        const data: Order[] = snap.docs.map((docSnap) => {
+        const allOrders: Order[] = snap.docs.map((docSnap) => {
           const d = docSnap.data() as any;
 
-          // item can be string or object; handle both
           const itemName =
             typeof d.item === "string"
               ? d.item
               : d.item?.name ?? d.item?.title ?? "Item";
 
-          // convert Firestore timestamp to readable string (if present)
           let dateStr = "";
           if (d.date) {
             try {
@@ -73,7 +81,40 @@ export default function Orders() {
           } as Order;
         });
 
-        setOrders(data);
+        // Separate completed vs active
+        const completedOrders = allOrders.filter(
+          (o) => o.status === "Completed"
+        );
+        const activeOrders = allOrders.filter((o) => o.status !== "Completed");
+
+        // Move completed to history
+        for (const order of completedOrders) {
+          const earnedPoints = Math.floor(order.amount * 0.01); // 1% of total purchase
+
+          // Add transaction history
+          await addDoc(collection(db, "customers", email, "transactions"), {
+            item: order.item,
+            amount: order.amount,
+            earnedPoints: earnedPoints,
+            type: "Completed Order",
+            date: new Date(),
+          });
+
+          // Update customer points
+          const customerRef = doc(db, "customers", email);
+          const customerSnap = await getDoc(customerRef);
+          if (customerSnap.exists()) {
+            const currentPoints = customerSnap.data().points || 0;
+            await updateDoc(customerRef, {
+              points: currentPoints + earnedPoints,
+            });
+          }
+
+          // optional: remove from orders collection
+          await deleteDoc(doc(db, "orders", order.id));
+        }
+
+        setOrders(activeOrders);
       } catch (err) {
         console.error("Error fetching orders:", err);
         setOrders([]);

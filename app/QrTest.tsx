@@ -89,7 +89,8 @@ export default function QrTest() {
           <Text style={styles.pointsValue}>{points.toFixed(2)} Pts.</Text>
         </View>
         <Text style={styles.scanHint}>
-          SCAN YOUR BARCODE BEFORE PAYMENT TO EARN POINTS
+          Please scan your barcode before payment to earn points. Earn 1% of
+          your total purchase in points.
         </Text>
       </View>
 
@@ -110,11 +111,6 @@ export default function QrTest() {
           <TouchableOpacity style={styles.gridItem} onPress={handleBrowse}>
             <FontAwesome5 name="store" size={28} color="#795548" />
             <Text style={styles.gridText}>Browse</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity style={styles.gridItem}>
-            <MaterialIcons name="smartphone" size={32} color="#a1887f" />
-            <Text style={styles.gridText}>Add e-Money</Text>
           </TouchableOpacity>
 
           <TouchableOpacity style={styles.gridItem} onPress={handleHistory}>

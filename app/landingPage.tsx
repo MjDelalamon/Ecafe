@@ -84,7 +84,6 @@ export default function LandingScreen() {
         resizeMode="contain"
       />
       <Text style={styles.title}>Welcome!</Text>
-      <Text style={styles.subtitle}>Login with your email and password</Text>
 
       {error ? <Text style={styles.errorText}>{error}</Text> : null}
 
@@ -110,7 +109,7 @@ export default function LandingScreen() {
       <TouchableOpacity style={styles.button} onPress={handleLogin}>
         <Text style={styles.buttonText}>Login</Text>
       </TouchableOpacity>
-
+      <Text style={styles.registerCheck}>Dont Have an account?</Text>
       <TouchableOpacity style={styles.registerButton} onPress={handleRegister}>
         <Text style={styles.registerText}>Register</Text>
       </TouchableOpacity>
@@ -187,10 +186,16 @@ const styles = StyleSheet.create({
   registerButton: {
     marginTop: 15,
   },
+  registerCheck: {
+    marginTop: 20,
+    fontSize: 14,
+    color: "#6d4c41",
+  },
   registerText: {
     color: "#795548",
     fontSize: 16,
     fontWeight: "bold",
+    textDecorationLine: "underline",
   },
   modalBackground: {
     flex: 1,

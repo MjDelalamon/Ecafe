@@ -25,20 +25,42 @@ export default function PointsHistory() {
 
   useEffect(() => {
     const fetchHistory = async () => {
-      if (!email) return;
+      if (!email) {
+        setHistory([]);
+        return;
+      }
       try {
         const q = query(
           collection(db, "customers", email, "transactions"),
           orderBy("date", "desc")
         );
-        const snapshot = await getDocs(q);
-        const data: Transaction[] = snapshot.docs.map((doc) => ({
-          id: doc.id,
-          ...(doc.data() as Omit<Transaction, "id">),
-        }));
-        setHistory(data);
-      } catch (error) {
-        console.error("Error fetching history:", error);
+        const snap = await getDocs(q);
+        const transactions: Transaction[] = snap.docs.map((docSnap) => {
+          const d = docSnap.data();
+          let dateStr = "";
+          if (d.date) {
+            try {
+              const ts: any = d.date;
+              const dateObj =
+                typeof ts?.toDate === "function" ? ts.toDate() : new Date(ts);
+              dateStr = dateObj.toLocaleString();
+            } catch {
+              dateStr = String(d.date);
+            }
+          }
+          return {
+            id: docSnap.id,
+            item: d.item ?? "Item",
+            amount:
+              typeof d.amount === "number" ? d.amount : Number(d.amount ?? 0),
+            type: d.type ?? "Transaction",
+            date: dateStr,
+          };
+        });
+        setHistory(transactions);
+      } catch (err) {
+        console.error("Error fetching history:", err);
+        setHistory([]);
       }
     };
     fetchHistory();
@@ -56,17 +78,10 @@ export default function PointsHistory() {
             <View>
               <Text style={styles.description}>{item.item}</Text>
               <Text style={styles.type}>{item.type}</Text>
-              <Text style={styles.date}>
-                {item.date?.toDate().toLocaleString() ?? "No date"}
-              </Text>
+              <Text style={styles.date}>{item.date ?? "No date"}</Text>
             </View>
-            <Text
-              style={[
-                styles.amount,
-                { color: item.amount > 0 ? "green" : "red" },
-              ]}
-            >
-              {item.amount > 0 ? `+${item.amount}` : item.amount}
+            <Text style={[styles.amount, { color: "red" }]}>
+              - {item.amount}
             </Text>
           </View>
         )}
@@ -118,7 +133,7 @@ const styles = StyleSheet.create({
     color: "#8d6e63",
   },
   amount: {
-    fontSize: 16,
+    fontSize: 18,
     fontWeight: "bold",
   },
   backButton: {
