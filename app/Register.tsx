@@ -126,8 +126,8 @@ export default function Register() {
       <TouchableOpacity style={styles.button} onPress={handleContinue}>
         <Text style={styles.buttonText}>Register</Text>
       </TouchableOpacity>
-      <TouchableOpacity style={styles.button} onPress={Back}>
-        <Text style={styles.buttonText}>⬅ Back </Text>
+      <TouchableOpacity style={styles.buttonBack} onPress={Back}>
+        <Text style={styles.buttonTextBack}> Back </Text>
       </TouchableOpacity>
 
       {/* Loading Modal */}
@@ -183,8 +183,20 @@ const styles = StyleSheet.create({
     marginTop: 10,
     width: "100%",
   },
+  buttonBack: {
+    paddingVertical: 14,
+    borderRadius: 12,
+    alignItems: "center",
+    marginTop: 10,
+    width: "100%",
+  },
   buttonText: {
     color: "#fff",
+    fontSize: 18,
+    fontWeight: "bold",
+  },
+  buttonTextBack: {
+    color: "#795548",
     fontSize: 18,
     fontWeight: "bold",
   },

@@ -1,8 +1,8 @@
 import { FontAwesome5, MaterialIcons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
-import { doc, onSnapshot, updateDoc } from "firebase/firestore";
+import { doc, onSnapshot } from "firebase/firestore";
 import React, { useEffect, useState } from "react";
-import { Alert, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { auth, db } from "../Firebase/firebaseConfig";
 
 export default function WalletScreen() {
@@ -28,17 +28,6 @@ export default function WalletScreen() {
   }, [userEmail]);
 
   // Function to add money to wallet
-  const handleLoadWallet = async (amount: number) => {
-    if (!userEmail) return;
-    try {
-      const userDocRef = doc(db, "customers", userEmail);
-      await updateDoc(userDocRef, { wallet: walletBalance + amount });
-      Alert.alert("Success", `₱${amount} added to your wallet!`);
-    } catch (error) {
-      console.error("Error updating wallet:", error);
-      Alert.alert("Error", "Failed to add money to wallet");
-    }
-  };
 
   const Buy = async () => {
     router.push({ pathname: "/menuList", params: { qrValue: userEmail } });
@@ -81,7 +70,7 @@ export default function WalletScreen() {
 
         <TouchableOpacity
           style={styles.gridItem}
-          onPress={() => handleLoadWallet(100)}
+          onPress={() => router.push("/LoadWalletPage")}
         >
           <MaterialIcons
             name="account-balance-wallet"
@@ -89,7 +78,7 @@ export default function WalletScreen() {
             color="#6d4c41"
           />
           <Text style={styles.gridTitle}>Load Wallet</Text>
-          <Text style={styles.gridDesc}>Add to your PAY wallet balance</Text>
+          <Text style={styles.gridDesc}>Request wallet loading via QR</Text>
         </TouchableOpacity>
       </View>
 
