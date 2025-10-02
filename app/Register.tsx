@@ -5,6 +5,7 @@ import {
   Alert,
   Image,
   Modal,
+  ScrollView,
   StyleSheet,
   Text,
   TextInput,
@@ -20,6 +21,7 @@ export default function Register() {
   const [mobile, setMobile] = useState<string>("");
   const [password, setPassword] = useState<string>("");
   const [loading, setLoading] = useState(false);
+  const [showTerms, setShowTerms] = useState(false);
 
   const router = useRouter();
 
@@ -34,7 +36,6 @@ export default function Register() {
     try {
       const fullName = `${firstName} ${lastName}`;
 
-      // 🔹 addUserToFirestore now stores password and uses email as document ID
       const result = await addUserToFirestore(
         fullName,
         email,
@@ -42,7 +43,7 @@ export default function Register() {
         password,
         0,
         0,
-        "Inactive", // inactive until email verified
+        "Inactive",
         "Bronze"
       );
 
@@ -52,11 +53,10 @@ export default function Register() {
           "A verification email has been sent. Please verify your email before logging in."
         );
 
-        // 🔹 Navigate to QrTest with qrValue = email
         router.replace({
           pathname: "/landingPage",
           params: {
-            qrValue: result.id, // Firestore doc ID (can be email)
+            qrValue: result.id,
             points: "0",
           },
         });
@@ -123,7 +123,11 @@ export default function Register() {
         placeholderTextColor="#9c8b7a"
       />
 
-      <TouchableOpacity style={styles.button} onPress={handleContinue}>
+      {/* Register Button → show terms modal */}
+      <TouchableOpacity
+        style={styles.button}
+        onPress={() => setShowTerms(true)}
+      >
         <Text style={styles.buttonText}>Register</Text>
       </TouchableOpacity>
       <TouchableOpacity style={styles.buttonBack} onPress={Back}>
@@ -136,6 +140,56 @@ export default function Register() {
           <View style={styles.modalContent}>
             <ActivityIndicator size="large" color="#795548" />
             <Text style={styles.loadingText}>Registering...</Text>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Terms & Conditions Modal */}
+      <Modal visible={showTerms} transparent animationType="fade">
+        <View style={styles.modalOverlay}>
+          <View style={styles.termsBox}>
+            {/* Close Button (X) */}
+            <TouchableOpacity
+              style={styles.closeButton}
+              onPress={() => setShowTerms(false)}
+            >
+              <Text style={styles.closeText}>×</Text>
+            </TouchableOpacity>
+
+            <Text style={styles.termsTitle}>Terms and Conditions</Text>
+            <View style={{ maxHeight: 300 }}>
+              <ScrollView showsVerticalScrollIndicator={true}>
+                <Text style={styles.termsText}>
+                  1. By creating an account, you agree to provide accurate
+                  information. {"\n\n"}
+                  2. Wallet balances, rewards, and transactions are managed
+                  within the system. {"\n\n"}
+                  3. Admin reserves the right to suspend accounts violating
+                  policies. {"\n\n"}
+                  4. Promotions, rewards, and offers may change without prior
+                  notice. {"\n\n"}
+                  5. By using this app, you agree to the collection of necessary
+                  data for transactions. {"\n\n"}
+                </Text>
+              </ScrollView>
+            </View>
+
+            <TouchableOpacity
+              style={styles.acceptButton}
+              onPress={() => {
+                setShowTerms(false);
+                handleContinue(); // tuloy register kapag accepted
+              }}
+            >
+              <Text style={styles.acceptText}>Accept & Continue</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.declineButton}
+              onPress={() => setShowTerms(false)}
+            >
+              <Text style={styles.declineText}>Decline</Text>
+            </TouchableOpacity>
           </View>
         </View>
       </Modal>
@@ -200,12 +254,7 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: "bold",
   },
-  modalOverlay: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    backgroundColor: "rgba(0,0,0,0.4)",
-  },
+
   modalContent: {
     backgroundColor: "#fff",
     padding: 30,
@@ -217,5 +266,69 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "600",
     color: "#4e342e",
+  },
+  termsTitle: {
+    fontSize: 20,
+    fontWeight: "bold",
+    color: "#4e342e",
+    marginBottom: 10,
+    textAlign: "center",
+  },
+  termsBox: {
+    backgroundColor: "#fff",
+    padding: 20,
+    borderRadius: 15,
+    width: "85%",
+    shadowColor: "#000",
+    shadowOpacity: 0.2,
+    shadowRadius: 6,
+    elevation: 5,
+  },
+  termsText: {
+    fontSize: 14,
+    color: "#3e2723",
+    lineHeight: 20,
+  },
+  acceptButton: {
+    backgroundColor: "#795548",
+    padding: 12,
+    borderRadius: 10,
+    marginTop: 15,
+    alignItems: "center",
+  },
+  acceptText: {
+    color: "#fff",
+    fontSize: 16,
+    fontWeight: "600",
+  },
+  declineButton: {
+    padding: 12,
+    borderRadius: 10,
+    marginTop: 10,
+    alignItems: "center",
+    borderWidth: 1,
+    borderColor: "#795548",
+  },
+  declineText: {
+    color: "#795548",
+    fontSize: 16,
+    fontWeight: "600",
+  },
+  modalOverlay: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "rgba(0,0,0,0.5)",
+  },
+  closeButton: {
+    position: "absolute",
+    right: 10,
+    top: 10,
+    zIndex: 1,
+  },
+  closeText: {
+    fontSize: 22,
+    fontWeight: "bold",
+    color: "#795548",
   },
 });
