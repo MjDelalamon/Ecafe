@@ -2,12 +2,14 @@ import { FontAwesome5, MaterialIcons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { doc, onSnapshot } from "firebase/firestore";
 import React, { useEffect, useState } from "react";
-import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { Modal, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import QRCode from "react-native-qrcode-svg";
 import { auth, db } from "../Firebase/firebaseConfig";
 
 export default function WalletScreen() {
   const router = useRouter();
   const [walletBalance, setWalletBalance] = useState<number>(0);
+  const [showQR, setShowQR] = useState(false); // ✅ control QR modal visibility
 
   const userEmail = auth.currentUser?.email;
 
@@ -23,14 +25,15 @@ export default function WalletScreen() {
       }
     });
 
-    // cleanup listener on unmount
     return () => unsubscribe();
   }, [userEmail]);
 
-  // Function to add money to wallet
-
+  // Function to navigate to Rewards
   const Buy = async () => {
-    router.push({ pathname: "/menuList", params: { qrValue: userEmail } });
+    router.push({
+      pathname: "/RewardsCatalog",
+      params: { qrValue: userEmail },
+    });
   };
 
   const LogsHistory = async () => {
@@ -82,11 +85,37 @@ export default function WalletScreen() {
         </TouchableOpacity>
       </View>
 
+      {/* ✅ Show QR Button */}
+      <TouchableOpacity style={styles.qrButton} onPress={() => setShowQR(true)}>
+        <MaterialIcons name="qr-code" size={22} color="#fff" />
+        <Text style={styles.qrButtonText}>Show My QR Code</Text>
+      </TouchableOpacity>
+
       {/* Manage Transactions */}
       <TouchableOpacity style={styles.manageButton} onPress={LogsHistory}>
         <MaterialIcons name="receipt-long" size={22} color="#4e342e" />
         <Text style={styles.manageText}> Transactions</Text>
       </TouchableOpacity>
+
+      {/* ✅ QR Modal */}
+      <Modal visible={showQR} transparent animationType="fade">
+        <View style={styles.modalContainer}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>My Wallet QR Code</Text>
+            {userEmail ? (
+              <QRCode value={userEmail} size={200} />
+            ) : (
+              <Text>No user found</Text>
+            )}
+            <TouchableOpacity
+              style={styles.closeButton}
+              onPress={() => setShowQR(false)}
+            >
+              <Text style={styles.closeButtonText}>Close</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -161,6 +190,21 @@ const styles = StyleSheet.create({
     marginTop: 4,
     textAlign: "center",
   },
+  qrButton: {
+    flexDirection: "row",
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "#388e3c",
+    padding: 14,
+    borderRadius: 12,
+    marginBottom: 16,
+  },
+  qrButtonText: {
+    color: "#fff",
+    fontWeight: "600",
+    marginLeft: 8,
+    fontSize: 16,
+  },
   manageButton: {
     flexDirection: "row",
     backgroundColor: "#fff",
@@ -179,5 +223,34 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     color: "#4e342e",
     marginLeft: 8,
+  },
+  modalContainer: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.5)",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  modalContent: {
+    backgroundColor: "#fff",
+    borderRadius: 12,
+    padding: 24,
+    alignItems: "center",
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: "bold",
+    marginBottom: 20,
+    color: "#3e2723",
+  },
+  closeButton: {
+    marginTop: 20,
+    backgroundColor: "#2e7d32",
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 8,
+  },
+  closeButtonText: {
+    color: "#fff",
+    fontWeight: "bold",
   },
 });

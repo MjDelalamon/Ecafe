@@ -164,7 +164,7 @@ export default function QrTest() {
 
           <TouchableOpacity style={styles.gridItem} onPress={handleBrowse}>
             <FontAwesome5 name="store" size={28} color="#795548" />
-            <Text style={styles.gridText}>Browse</Text>
+            <Text style={styles.gridText}>Redeem reward</Text>
           </TouchableOpacity>
 
           <TouchableOpacity style={styles.gridItem} onPress={handleHistory}>
@@ -197,7 +197,7 @@ const styles = StyleSheet.create({
   },
   qrContainer: {
     alignItems: "center",
-    marginTop: 30,
+    marginTop: 0,
     marginBottom: 20,
     backgroundColor: "#fff",
     padding: 20,
@@ -225,7 +225,7 @@ const styles = StyleSheet.create({
     color: "#4e342e",
   },
   pointsValue: {
-    fontSize: 28,
+    fontSize: 30,
     fontWeight: "bold",
     color: "#795548",
     marginTop: 4,

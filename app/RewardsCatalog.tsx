@@ -194,7 +194,7 @@ export default function MenuList() {
         <TouchableOpacity onPress={() => router.back()}>
           <Text style={styles.backArrow}>⬅</Text>
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Menu</Text>
+        <Text style={styles.headerTitle}>Reward Catalog</Text>
         <MaterialIcons name="contactless" size={28} color="#4e342e" />
       </View>
       {/* 🔎 Search Bar */}
@@ -258,30 +258,14 @@ export default function MenuList() {
                 <Text style={styles.modalDesc}>{selectedItem.description}</Text>
                 <Text style={styles.modalPrice}>₱{selectedItem.price}</Text>
 
-                <Text style={styles.balanceText}>
-                  Wallet: ₱{wallet} | Points: {points}
-                </Text>
+                <Text style={styles.balanceText}>Points: {points}</Text>
 
                 <View style={styles.buttonGroup}>
                   <TouchableOpacity
                     style={styles.payButton}
-                    onPress={() => handlePlaceOrder("wallet")}
-                  >
-                    <Text style={styles.payText}>Pay with Wallet</Text>
-                  </TouchableOpacity>
-
-                  <TouchableOpacity
-                    style={styles.payButton}
                     onPress={() => handlePlaceOrder("points")}
                   >
-                    <Text style={styles.payText}>Pay with Points</Text>
-                  </TouchableOpacity>
-
-                  <TouchableOpacity
-                    style={styles.payButton}
-                    onPress={() => handlePlaceOrder("mixed")}
-                  >
-                    <Text style={styles.payText}>Pay with Wallet + Points</Text>
+                    <Text style={styles.payText}>Redeem</Text>
                   </TouchableOpacity>
                 </View>
 
