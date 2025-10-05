@@ -1,6 +1,6 @@
 import { FontAwesome5, MaterialIcons } from "@expo/vector-icons";
 import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
-import { doc, getDoc } from "firebase/firestore";
+import { doc, getDoc, updateDoc } from "firebase/firestore";
 import React, { useCallback, useState } from "react";
 import {
   ScrollView,
@@ -20,8 +20,45 @@ export default function QrTest() {
 
   const router = useRouter();
   const [points, setPoints] = useState(0);
+  const [tier, setTier] = useState("Bronze");
+  const [nextTierInfo, setNextTierInfo] = useState({
+    next: null,
+    remaining: 0,
+    progress: 0,
+  });
 
-  // ✅ Fetch customer balance
+  // ✅ Determine Tier Based on Points
+  const determineTier = (pts: number) => {
+    if (pts >= 3000) return "Platinum";
+    if (pts >= 1500) return "Gold";
+    if (pts >= 500) return "Silver";
+    return "Bronze";
+  };
+
+  // ✅ Get Next Tier Info
+  const getNextTierInfo = (pts: number) => {
+    if (pts < 500)
+      return {
+        next: "Silver",
+        remaining: 500 - pts,
+        progress: (pts / 500) * 100,
+      };
+    if (pts < 1500)
+      return {
+        next: "Gold",
+        remaining: 1500 - pts,
+        progress: ((pts - 500) / 1000) * 100,
+      };
+    if (pts < 3000)
+      return {
+        next: "Platinum",
+        remaining: 3000 - pts,
+        progress: ((pts - 1500) / 1500) * 100,
+      };
+    return { next: null, remaining: 0, progress: 100 };
+  };
+
+  // ✅ Fetch customer data (with auto tier update)
   const fetchCustomerData = useCallback(async () => {
     if (!qrValue) return;
     try {
@@ -29,7 +66,20 @@ export default function QrTest() {
       const snap = await getDoc(customerRef);
       if (snap.exists()) {
         const data = snap.data();
-        setPoints(data.points || 0);
+        const pts = data.points || 0;
+        setPoints(pts);
+
+        const newTier = determineTier(pts);
+        setTier(newTier);
+
+        // ✅ Calculate progress to next tier
+        setNextTierInfo(getNextTierInfo(pts));
+
+        // ✅ Automatically update tier in Firestore if it's different
+        if (data.tier !== newTier) {
+          await updateDoc(customerRef, { tier: newTier });
+          console.log("Tier updated in Firestore to:", newTier);
+        }
       }
     } catch (err) {
       console.error("Error fetching customer data:", err);
@@ -43,34 +93,15 @@ export default function QrTest() {
     }, [fetchCustomerData])
   );
 
-  const handleWallet = () => {
-    router.push("/Wallet");
-  };
-
-  const handleBack = () => {
-    router.push("/landingPage");
-  };
-
-  const handleBrowse = () => {
-    router.push({
-      pathname: "/menuList",
-      params: { email: qrValue },
-    });
-  };
-
-  const handleHistory = () => {
-    router.push({
-      pathname: "/pointsHistory",
-      params: { email: qrValue },
-    });
-  };
-
-  const handleOrders = () => {
-    router.push({
-      pathname: "/orders",
-      params: { email: qrValue },
-    });
-  };
+  // 🔹 Navigation Handlers
+  const handleWallet = () => router.push("/Wallet");
+  const handleBack = () => router.push("/landingPage");
+  const handleBrowse = () =>
+    router.push({ pathname: "/menuList", params: { email: qrValue } });
+  const handleHistory = () =>
+    router.push({ pathname: "/pointsHistory", params: { email: qrValue } });
+  const handleOrders = () =>
+    router.push({ pathname: "/orders", params: { email: qrValue } });
 
   return (
     <View style={styles.container}>
@@ -82,19 +113,42 @@ export default function QrTest() {
           <Text style={styles.error}>No QR code found</Text>
         )}
         <Text style={styles.barcodeText}>{mobile}</Text>
+
         <View style={styles.pointsBox}>
-          <Text style={[styles.pointsLabel, { marginTop: 10 }]}>
-            Rewards Balance
-          </Text>
+          <Text style={styles.pointsLabel}>Rewards Balance</Text>
           <Text style={styles.pointsValue}>{points.toFixed(2)} Pts.</Text>
+          <Text style={styles.tierText}>Tier: {tier}</Text>
+
+          {/* ✅ Progress to Next Tier */}
+          {nextTierInfo.next ? (
+            <>
+              <Text style={styles.nextTierText}>
+                {nextTierInfo.remaining.toFixed(0)} points more to reach{" "}
+                <Text style={{ fontWeight: "bold", color: "#795548" }}>
+                  {nextTierInfo.next}
+                </Text>
+              </Text>
+              <View style={styles.progressBar}>
+                <View
+                  style={[
+                    styles.progressFill,
+                    { width: `${nextTierInfo.progress}%` },
+                  ]}
+                />
+              </View>
+            </>
+          ) : (
+            <Text style={styles.maxTierText}>
+              You’ve reached the highest tier — Platinum! 🏆
+            </Text>
+          )}
         </View>
+
         <Text style={styles.scanHint}>
           Please scan your barcode before payment to earn points. Earn 1% of
           your total purchase in points.
         </Text>
       </View>
-
-      {/* Rewards Balance */}
 
       {/* Action Buttons */}
       <ScrollView style={{ flex: 1, width: "100%" }}>
@@ -133,6 +187,7 @@ export default function QrTest() {
   );
 }
 
+// ✅ All Styles
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -160,11 +215,6 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     color: "#4e342e",
   },
-  scanHint: {
-    fontSize: 12,
-    color: "#6d4c41",
-    marginTop: 4,
-  },
   pointsBox: {
     alignItems: "center",
     marginBottom: 20,
@@ -179,6 +229,40 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
     color: "#795548",
     marginTop: 4,
+  },
+  tierText: {
+    marginTop: 6,
+    fontSize: 16,
+    fontWeight: "bold",
+    color: "#8d6e63",
+  },
+  nextTierText: {
+    marginTop: 8,
+    fontSize: 13,
+    color: "#5d4037",
+  },
+  progressBar: {
+    width: "100%",
+    height: 10,
+    backgroundColor: "#d7ccc8",
+    borderRadius: 10,
+    marginTop: 6,
+    overflow: "hidden",
+  },
+  progressFill: {
+    height: "100%",
+    backgroundColor: "#795548",
+  },
+  maxTierText: {
+    color: "#388e3c",
+    marginTop: 8,
+    fontWeight: "600",
+  },
+  scanHint: {
+    fontSize: 12,
+    color: "#6d4c41",
+    marginTop: 4,
+    textAlign: "center",
   },
   grid: {
     flexDirection: "row",

@@ -65,9 +65,14 @@ export default function LoadWalletPage() {
 
       {/* Notes */}
       <Text style={styles.note}>
-        1. Scan the QR using your GCash or preferred e-wallet.{"\n"}
+        1. Scan the QR using your GCash{"\n"}
         2. Complete the payment.{"\n"}
         3. Enter your Reference Number below for admin verification.
+        {"\n"}4. Admin will review and update your wallet balance.
+      </Text>
+
+      <Text style={styles.note}>
+        Tip: It’s better to load your wallet over the counter.
       </Text>
 
       {/* Reference No. Input */}
