@@ -97,7 +97,7 @@ export default function QrTest() {
   const handleWallet = () => router.push("/Wallet");
   const handleBack = () => router.push("/landingPage");
   const handleBrowse = () =>
-    router.push({ pathname: "/menuList", params: { email: qrValue } });
+    router.push({ pathname: "/RewardsCatalog", params: { email: qrValue } });
   const handleHistory = () =>
     router.push({ pathname: "/pointsHistory", params: { email: qrValue } });
   const handleOrders = () =>

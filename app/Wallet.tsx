@@ -31,7 +31,7 @@ export default function WalletScreen() {
   // Function to navigate to Rewards
   const Buy = async () => {
     router.push({
-      pathname: "/RewardsCatalog",
+      pathname: "/walletMenu",
       params: { qrValue: userEmail },
     });
   };
@@ -67,7 +67,7 @@ export default function WalletScreen() {
           <FontAwesome5 name="shopping-basket" size={32} color="#4e342e" />
           <Text style={styles.gridTitle}>Buy at DEsperanza Cafe</Text>
           <Text style={styles.gridDesc}>
-            Use your PAY balance to scan and go!
+            Use your wallet balance to scan and go!
           </Text>
         </TouchableOpacity>
 

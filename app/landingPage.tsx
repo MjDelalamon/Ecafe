@@ -1,3 +1,4 @@
+import { MaterialIcons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { signInWithEmailAndPassword } from "firebase/auth";
 import { doc, getDoc } from "firebase/firestore";
@@ -12,13 +13,14 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { auth, db } from "../Firebase/firebaseConfig"; // Firebase config
+import { auth, db } from "../Firebase/firebaseConfig";
 
 export default function LandingScreen() {
-  const [email, setEmail] = useState<string>("");
-  const [password, setPassword] = useState<string>("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string>("");
+  const [error, setError] = useState("");
 
   const router = useRouter();
 
@@ -37,8 +39,8 @@ export default function LandingScreen() {
         email,
         password
       );
-
       const userEmail = userCredential.user.email;
+
       if (!userEmail) {
         setError("⚠ Unable to retrieve user email");
         setLoading(false);
@@ -55,7 +57,6 @@ export default function LandingScreen() {
       }
 
       const userData = userSnapshot.data();
-
       setLoading(false);
 
       router.replace({
@@ -67,7 +68,7 @@ export default function LandingScreen() {
         },
       });
     } catch {
-      setError(`⚠ Invald email or password `);
+      setError(`⚠ Invalid email or password`);
       setLoading(false);
     }
   };
@@ -97,19 +98,30 @@ export default function LandingScreen() {
         placeholderTextColor="#9c8b7a"
       />
 
-      <TextInput
-        style={styles.input}
-        placeholder="Enter your password"
-        value={password}
-        onChangeText={setPassword}
-        secureTextEntry
-        placeholderTextColor="#9c8b7a"
-      />
+      {/* 🔹 Password Input with Eye Toggle */}
+      <View style={styles.passwordContainer}>
+        <TextInput
+          style={styles.passwordInput}
+          placeholder="Enter your password"
+          value={password}
+          onChangeText={setPassword}
+          secureTextEntry={!showPassword}
+          placeholderTextColor="#9c8b7a"
+        />
+        <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
+          <MaterialIcons
+            name={showPassword ? "visibility" : "visibility-off"}
+            size={24}
+            color="#795548"
+          />
+        </TouchableOpacity>
+      </View>
 
       <TouchableOpacity style={styles.button} onPress={handleLogin}>
         <Text style={styles.buttonText}>Login</Text>
       </TouchableOpacity>
-      <Text style={styles.registerCheck}>Dont Have an account?</Text>
+
+      <Text style={styles.registerCheck}>Dont have an account?</Text>
       <TouchableOpacity style={styles.registerButton} onPress={handleRegister}>
         <Text style={styles.registerText}>Register</Text>
       </TouchableOpacity>
@@ -147,11 +159,6 @@ const styles = StyleSheet.create({
     marginBottom: 8,
     color: "#4e342e",
   },
-  subtitle: {
-    fontSize: 18,
-    color: "#6d4c41",
-    marginBottom: 20,
-  },
   errorText: {
     color: "#d32f2f",
     fontSize: 14,
@@ -167,6 +174,23 @@ const styles = StyleSheet.create({
     marginBottom: 15,
     borderRadius: 12,
     backgroundColor: "#fff",
+    fontSize: 16,
+    color: "#3e2723",
+  },
+  passwordContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    width: "100%",
+    borderWidth: 1,
+    borderColor: "#d7ccc8",
+    borderRadius: 12,
+    backgroundColor: "#fff",
+    marginBottom: 15,
+    paddingHorizontal: 10,
+  },
+  passwordInput: {
+    flex: 1,
+    paddingVertical: 12,
     fontSize: 16,
     color: "#3e2723",
   },
