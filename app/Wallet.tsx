@@ -9,7 +9,7 @@ import { auth, db } from "../Firebase/firebaseConfig";
 export default function WalletScreen() {
   const router = useRouter();
   const [walletBalance, setWalletBalance] = useState<number>(0);
-  const [showQR, setShowQR] = useState(false); // ✅ control QR modal visibility
+  const [showQR, setShowQR] = useState(false);
 
   const userEmail = auth.currentUser?.email;
 
@@ -28,12 +28,9 @@ export default function WalletScreen() {
     return () => unsubscribe();
   }, [userEmail]);
 
-  // Function to navigate to Rewards
-  const Buy = async () => {
-    router.push({
-      pathname: "/walletMenu",
-      params: { qrValue: userEmail },
-    });
+  // ✅ Show QR modal when pressing "Buy"
+  const Buy = () => {
+    setShowQR(true);
   };
 
   const LogsHistory = async () => {
@@ -65,7 +62,7 @@ export default function WalletScreen() {
       <View style={styles.grid}>
         <TouchableOpacity style={styles.gridItem} onPress={Buy}>
           <FontAwesome5 name="shopping-basket" size={32} color="#4e342e" />
-          <Text style={styles.gridTitle}>Buy at DEsperanza Cafe</Text>
+          <Text style={styles.gridTitle}>Buy at D'Esperanza Cafe</Text>
           <Text style={styles.gridDesc}>
             Use your wallet balance to scan and go!
           </Text>
@@ -85,16 +82,10 @@ export default function WalletScreen() {
         </TouchableOpacity>
       </View>
 
-      {/* ✅ Show QR Button */}
-      <TouchableOpacity style={styles.qrButton} onPress={() => setShowQR(true)}>
-        <MaterialIcons name="qr-code" size={22} color="#fff" />
-        <Text style={styles.qrButtonText}>Show My QR Code</Text>
-      </TouchableOpacity>
-
       {/* Manage Transactions */}
       <TouchableOpacity style={styles.manageButton} onPress={LogsHistory}>
         <MaterialIcons name="receipt-long" size={22} color="#4e342e" />
-        <Text style={styles.manageText}> Transactions</Text>
+        <Text style={styles.manageText}> Load Wallet Logs</Text>
       </TouchableOpacity>
 
       {/* ✅ QR Modal */}
@@ -103,7 +94,14 @@ export default function WalletScreen() {
           <View style={styles.modalContent}>
             <Text style={styles.modalTitle}>My Wallet QR Code</Text>
             {userEmail ? (
-              <QRCode value={userEmail} size={200} />
+              <>
+                <QRCode value={userEmail} size={200} />
+                <Text style={styles.instruction}>
+                  Please present this QR code at the D'Esperanza Café counter.
+                  The staff will scan it to process your purchase using your
+                  wallet balance.
+                </Text>
+              </>
             ) : (
               <Text>No user found</Text>
             )}
@@ -190,21 +188,6 @@ const styles = StyleSheet.create({
     marginTop: 4,
     textAlign: "center",
   },
-  qrButton: {
-    flexDirection: "row",
-    justifyContent: "center",
-    alignItems: "center",
-    backgroundColor: "#388e3c",
-    padding: 14,
-    borderRadius: 12,
-    marginBottom: 16,
-  },
-  qrButtonText: {
-    color: "#fff",
-    fontWeight: "600",
-    marginLeft: 8,
-    fontSize: 16,
-  },
   manageButton: {
     flexDirection: "row",
     backgroundColor: "#fff",
@@ -235,6 +218,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     padding: 24,
     alignItems: "center",
+    width: "85%",
   },
   modalTitle: {
     fontSize: 18,
@@ -242,9 +226,16 @@ const styles = StyleSheet.create({
     marginBottom: 20,
     color: "#3e2723",
   },
+  instruction: {
+    marginTop: 16,
+    fontSize: 14,
+    color: "#4e342e",
+    textAlign: "center",
+    lineHeight: 20,
+  },
   closeButton: {
     marginTop: 20,
-    backgroundColor: "#2e7d32",
+    backgroundColor: "#4e342e",
     paddingHorizontal: 20,
     paddingVertical: 10,
     borderRadius: 8,
