@@ -1,6 +1,7 @@
 import { FontAwesome5, Ionicons, MaterialIcons } from "@expo/vector-icons";
 import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
 import { doc, getDoc, updateDoc } from "firebase/firestore";
+
 import React, { useCallback, useState } from "react";
 import {
   Modal,
@@ -22,6 +23,8 @@ export default function QrTest() {
   const router = useRouter();
   const [points, setPoints] = useState(0);
   const [tier, setTier] = useState("Bronze");
+  const [promoModalVisible, setPromoModalVisible] = useState(false);
+
   const [nextTierInfo, setNextTierInfo] = useState({
     next: null,
     remaining: 0,
@@ -199,6 +202,13 @@ export default function QrTest() {
             <Ionicons name="person-circle-outline" size={32} color="#795548" />
             <Text style={styles.gridText}>Profile</Text>
           </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.gridItem}
+            onPress={() => setPromoModalVisible(true)}
+          >
+            <FontAwesome5 name="gift" size={28} color="#795548" />
+            <Text style={styles.gridText}>Promotions</Text>
+          </TouchableOpacity>
         </View>
       </ScrollView>
 
@@ -245,6 +255,40 @@ export default function QrTest() {
                 )}
               </>
             )}
+          </View>
+        </View>
+      </Modal>
+
+      {/* Promotions Modal (inline) */}
+      <Modal
+        visible={promoModalVisible}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setPromoModalVisible(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.profileModalBox}>
+            <TouchableOpacity
+              style={styles.profileModalClose}
+              onPress={() => setPromoModalVisible(false)}
+            >
+              <Text style={{ fontSize: 22, color: "#795548" }}>×</Text>
+            </TouchableOpacity>
+            <Text style={styles.profileTitle}>Promotions</Text>
+            <Text style={{ color: "#3e2723", marginTop: 8 }}>
+              - Welcome Promo: 50 points on first purchase{"\n"}- Weekend Bonus:
+              Double points on Saturdays{"\n"}- Redeemable vouchers available in
+              Rewards Catalog
+            </Text>
+            <TouchableOpacity
+              style={[
+                styles.backButton,
+                { alignSelf: "center", marginTop: 12 },
+              ]}
+              onPress={() => setPromoModalVisible(false)}
+            >
+              <Text style={styles.backButtonText}>Close</Text>
+            </TouchableOpacity>
           </View>
         </View>
       </Modal>
