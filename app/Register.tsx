@@ -1,3 +1,4 @@
+import { Picker } from "@react-native-picker/picker";
 import { useRouter } from "expo-router";
 import React, { useState } from "react";
 import {
@@ -20,13 +21,14 @@ export default function Register() {
   const [email, setEmail] = useState<string>("");
   const [mobile, setMobile] = useState<string>("");
   const [password, setPassword] = useState<string>("");
+  const [gender, setGender] = useState<string>("");
   const [loading, setLoading] = useState(false);
   const [showTerms, setShowTerms] = useState(false);
 
   const router = useRouter();
 
   const handleContinue = async () => {
-    if (!lastName || !firstName || !email || !mobile || !password) {
+    if (!lastName || !firstName || !email || !mobile || !password || !gender) {
       Alert.alert("Error", "Please fill all fields");
       return;
     }
@@ -44,7 +46,8 @@ export default function Register() {
         0,
         0,
         "Inactive",
-        "Bronze"
+        "Bronze",
+        gender // pass gender to Firestore
       );
 
       if (result.success) {
@@ -122,6 +125,17 @@ export default function Register() {
         secureTextEntry
         placeholderTextColor="#9c8b7a"
       />
+      <View style={styles.pickerContainer}>
+        <Picker
+          selectedValue={gender}
+          onValueChange={setGender}
+          style={styles.picker}
+        >
+          <Picker.Item label="Select Gender" value="" />
+          <Picker.Item label="Male" value="Male" />
+          <Picker.Item label="Female" value="Female" />
+        </Picker>
+      </View>
 
       {/* Register Button → show terms modal */}
       <TouchableOpacity
@@ -330,5 +344,18 @@ const styles = StyleSheet.create({
     fontSize: 22,
     fontWeight: "bold",
     color: "#795548",
+  },
+  pickerContainer: {
+    width: "100%",
+    borderWidth: 1,
+    borderColor: "#d7ccc8",
+    borderRadius: 12,
+    backgroundColor: "#fff",
+    marginBottom: 15,
+    overflow: "hidden",
+  },
+  picker: {
+    width: "100%",
+    color: "#3e2723",
   },
 });

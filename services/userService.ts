@@ -27,7 +27,8 @@ export const addUserToFirestore = async (
   points = 0,
   wallet = 0,
   status = "Inactive", // start as Inactive until email verified
-  tier = "Bronze"
+  tier = "Bronze",
+  gender?: string // add gender parameter
 ): Promise<FirestoreResult> => {
   try {
     // 🔹 Check if email already exists in Auth
@@ -49,7 +50,6 @@ export const addUserToFirestore = async (
     
 
     const newCustomer = {
-      
       fullName,
       email,
       mobile,
@@ -58,6 +58,7 @@ export const addUserToFirestore = async (
       status,
       tier,
       createdAt: new Date(),
+      gender, // store gender
     };
 
     // 🔹 Store in Firestore with email as ID

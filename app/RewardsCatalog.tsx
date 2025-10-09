@@ -157,7 +157,7 @@ export default function MenuList() {
       setLoadingModalVisible(true);
       await addDoc(collection(db, "orders"), {
         customerEmail: email,
-        item: selectedItem.name,
+        items: selectedItem.name,
         category: selectedItem.category,
         amount: selectedItem.price,
         paymentMethod: method,
@@ -265,7 +265,7 @@ export default function MenuList() {
                     style={styles.payButton}
                     onPress={() => handlePlaceOrder("points")}
                   >
-                    <Text style={styles.payText}>Redeem</Text>
+                    <Text style={styles.payText}>Place Order</Text>
                   </TouchableOpacity>
                 </View>
 

@@ -1,8 +1,9 @@
-import { FontAwesome5, MaterialIcons } from "@expo/vector-icons";
+import { FontAwesome5, Ionicons, MaterialIcons } from "@expo/vector-icons";
 import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
 import { doc, getDoc, updateDoc } from "firebase/firestore";
 import React, { useCallback, useState } from "react";
 import {
+  Modal,
   ScrollView,
   StyleSheet,
   Text,
@@ -26,6 +27,8 @@ export default function QrTest() {
     remaining: 0,
     progress: 0,
   });
+  const [profileModalVisible, setProfileModalVisible] = useState(false);
+  const [userInfo, setUserInfo] = useState<any>(null);
 
   // ✅ Determine Tier Based on Points
   const determineTier = (pts: number) => {
@@ -63,9 +66,13 @@ export default function QrTest() {
     if (!qrValue) return;
     try {
       const customerRef = doc(db, "customers", qrValue);
+      // Set status to "active" when user is in the app
+      await updateDoc(customerRef, { status: "Active" });
+
       const snap = await getDoc(customerRef);
       if (snap.exists()) {
         const data = snap.data();
+        setUserInfo(data); // Save user info for profile modal
         const pts = data.points || 0;
         setPoints(pts);
 
@@ -95,7 +102,15 @@ export default function QrTest() {
 
   // 🔹 Navigation Handlers
   const handleWallet = () => router.push("/Wallet");
-  const handleBack = () => router.push("/landingPage");
+  const handleProfile = () =>
+    router.push({ pathname: "/profileInfo", params: { email: qrValue } });
+  const handleBack = async () => {
+    if (qrValue) {
+      const customerRef = doc(db, "customers", qrValue);
+      await updateDoc(customerRef, { status: "Inactive" });
+    }
+    router.push("/landingPage");
+  };
   const handleBrowse = () =>
     router.push({ pathname: "/RewardsCatalog", params: { email: qrValue } });
   const handleHistory = () =>
@@ -105,6 +120,8 @@ export default function QrTest() {
 
   return (
     <View style={styles.container}>
+      {/* Profile Icon at the Top Right */}
+
       {/* QR Code Section */}
       <View style={styles.qrContainer}>
         {qrValue ? (
@@ -176,6 +193,12 @@ export default function QrTest() {
             <MaterialIcons name="receipt-long" size={32} color="#6d4c41" />
             <Text style={styles.gridText}>Orders</Text>
           </TouchableOpacity>
+
+          {/* Profile Button */}
+          <TouchableOpacity style={styles.gridItem} onPress={handleProfile}>
+            <Ionicons name="person-circle-outline" size={32} color="#795548" />
+            <Text style={styles.gridText}>Profile</Text>
+          </TouchableOpacity>
         </View>
       </ScrollView>
 
@@ -183,6 +206,48 @@ export default function QrTest() {
       <TouchableOpacity style={styles.backButton} onPress={handleBack}>
         <Text style={styles.backButtonText}>⬅ Log out</Text>
       </TouchableOpacity>
+
+      {/* Profile Modal */}
+      <Modal
+        visible={profileModalVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setProfileModalVisible(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.profileModalBox}>
+            <TouchableOpacity
+              style={styles.profileModalClose}
+              onPress={() => setProfileModalVisible(false)}
+            >
+              <Text style={{ fontSize: 22, color: "#795548" }}>×</Text>
+            </TouchableOpacity>
+            <Ionicons
+              name="person-circle-outline"
+              size={64}
+              color="#795548"
+              style={{ alignSelf: "center" }}
+            />
+            <Text style={styles.profileTitle}>Profile Info</Text>
+            {userInfo && (
+              <>
+                <Text style={styles.profileLabel}>Email:</Text>
+                <Text style={styles.profileValue}>{userInfo.email}</Text>
+                <Text style={styles.profileLabel}>Mobile:</Text>
+                <Text style={styles.profileValue}>{userInfo.mobile}</Text>
+                <Text style={styles.profileLabel}>Tier:</Text>
+                <Text style={styles.profileValue}>{userInfo.tier}</Text>
+                {userInfo.gender && (
+                  <>
+                    <Text style={styles.profileLabel}>Gender:</Text>
+                    <Text style={styles.profileValue}>{userInfo.gender}</Text>
+                  </>
+                )}
+              </>
+            )}
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -304,5 +369,57 @@ const styles = StyleSheet.create({
   error: {
     fontSize: 16,
     color: "red",
+  },
+  profileIcon: {
+    position: "absolute",
+    top: 30,
+    right: 20,
+    zIndex: 10,
+    backgroundColor: "#fff",
+    borderRadius: 22,
+    elevation: 3,
+    shadowColor: "#000",
+    shadowOpacity: 0.08,
+    shadowRadius: 4,
+    shadowOffset: { width: 0, height: 2 },
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.35)",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  profileModalBox: {
+    backgroundColor: "#fff",
+    padding: 28,
+    borderRadius: 18,
+    width: "80%",
+    alignItems: "flex-start",
+    position: "relative",
+  },
+  profileModalClose: {
+    position: "absolute",
+    top: 10,
+    right: 12,
+    zIndex: 2,
+  },
+  profileTitle: {
+    fontSize: 22,
+    fontWeight: "bold",
+    color: "#795548",
+    alignSelf: "center",
+    marginBottom: 10,
+    marginTop: 10,
+  },
+  profileLabel: {
+    fontSize: 15,
+    color: "#6d4c41",
+    fontWeight: "bold",
+    marginTop: 8,
+  },
+  profileValue: {
+    fontSize: 15,
+    color: "#3e2723",
+    marginBottom: 2,
   },
 });
