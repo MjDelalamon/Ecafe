@@ -191,7 +191,7 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     alignItems: "center",
     marginBottom: 15,
-    backgroundColor: "#f6ede6",
+    backgroundColor: "#fffdfbff",
     borderRadius: 10,
     paddingVertical: 8,
     paddingHorizontal: 12,
@@ -238,7 +238,7 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     alignItems: "center",
     padding: 18,
-    backgroundColor: "#fff8f3",
+    backgroundColor: "#fffdfbff",
     borderRadius: 14,
     marginBottom: 12,
     shadowColor: "#5d4037",
@@ -267,7 +267,7 @@ const styles = StyleSheet.create({
   amount: {
     fontSize: 18,
     fontWeight: "700",
-    color: "#8d6e63",
+    color: "#54433cff",
   },
   backButton: {
     marginTop: 25,
