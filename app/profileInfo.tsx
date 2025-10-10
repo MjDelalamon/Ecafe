@@ -63,7 +63,7 @@ export default function ProfileInfo() {
         color="#795548"
         style={{ alignSelf: "center" }}
       />
-      <Text style={styles.title}>Profile Information</Text>
+
       <View style={styles.infoBox}>
         <Text style={styles.label}>Full Name:</Text>
         <Text style={styles.value}>{user.fullName}</Text>

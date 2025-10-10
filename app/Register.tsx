@@ -1,5 +1,6 @@
 import { Picker } from "@react-native-picker/picker";
 import { useRouter } from "expo-router";
+
 import React, { useState } from "react";
 import {
   ActivityIndicator,
@@ -21,6 +22,7 @@ export default function Register() {
   const [email, setEmail] = useState<string>("");
   const [mobile, setMobile] = useState<string>("");
   const [password, setPassword] = useState<string>("");
+  const [confirmPassword, setConfirmPassword] = useState<string>(""); // added
   const [gender, setGender] = useState<string>("");
   const [loading, setLoading] = useState(false);
   const [showTerms, setShowTerms] = useState(false);
@@ -28,8 +30,21 @@ export default function Register() {
   const router = useRouter();
 
   const handleContinue = async () => {
-    if (!lastName || !firstName || !email || !mobile || !password || !gender) {
+    if (
+      !lastName ||
+      !firstName ||
+      !email ||
+      !mobile ||
+      !password ||
+      !gender ||
+      !confirmPassword
+    ) {
       Alert.alert("Error", "Please fill all fields");
+      return;
+    }
+
+    if (password !== confirmPassword) {
+      Alert.alert("Error", "Passwords do not match");
       return;
     }
 
@@ -125,6 +140,18 @@ export default function Register() {
         secureTextEntry
         placeholderTextColor="#9c8b7a"
       />
+      <TextInput
+        style={styles.input}
+        placeholder="Confirm Password"
+        value={confirmPassword}
+        onChangeText={setConfirmPassword}
+        secureTextEntry
+        placeholderTextColor="#9c8b7a"
+      />
+      {/* Inline mismatch hint */}
+      {confirmPassword.length > 0 && password !== confirmPassword && (
+        <Text style={styles.mismatchText}>Passwords do not match</Text>
+      )}
       <View style={styles.pickerContainer}>
         <Picker
           selectedValue={gender}
@@ -357,5 +384,12 @@ const styles = StyleSheet.create({
   picker: {
     width: "100%",
     color: "#3e2723",
+  },
+  mismatchText: {
+    color: "#d32f2f",
+    marginBottom: 8,
+    marginLeft: 4,
+    fontSize: 13,
+    fontWeight: "600",
   },
 });
