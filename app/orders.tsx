@@ -1,123 +1,65 @@
 import { useLocalSearchParams } from "expo-router";
-import {
-  addDoc,
-  collection,
-  deleteDoc,
-  doc,
-  getDoc,
-  getDocs,
-  query,
-  updateDoc,
-  where,
-} from "firebase/firestore";
+import { collection, getDocs, query, where } from "firebase/firestore";
 import React, { useEffect, useState } from "react";
 import {
   ActivityIndicator,
   FlatList,
+  Modal,
+  Pressable,
   StyleSheet,
   Text,
   View,
 } from "react-native";
 import { db } from "../Firebase/firebaseConfig";
 
+type OrderItem = {
+  id: string;
+  name: string;
+  price: number;
+  qty: number;
+  subtotal: number;
+};
+
 type Order = {
   id: string;
-  item: string;
-  amount: number;
+  items: OrderItem[];
+  subtotal: number;
   status: string;
-  date: string;
-  paymentMethod: string;
+  placedAt: string;
 };
 
 export default function Orders() {
   const { email } = useLocalSearchParams<{ email: string }>();
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
+  const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
+  const [modalVisible, setModalVisible] = useState<boolean>(false);
 
   useEffect(() => {
     const fetchOrders = async () => {
-      if (!email) {
-        setOrders([]);
-        setLoading(false);
-        return;
-      }
-
+      if (!email) return;
       setLoading(true);
       try {
         const q = query(
           collection(db, "orders"),
-          where("customerEmail", "==", email)
+          where("customerId", "==", email)
         );
         const snap = await getDocs(q);
 
-        const allOrders: Order[] = snap.docs.map((docSnap) => {
+        const fetchedOrders: Order[] = snap.docs.map((docSnap) => {
           const d = docSnap.data() as any;
-
-          const itemName =
-            typeof d.item === "string"
-              ? d.item
-              : d.item?.name ?? d.item?.title ?? "Item";
-
-          let dateStr = "";
-          if (d.date) {
-            try {
-              const ts: any = d.date;
-              const dateObj =
-                typeof ts?.toDate === "function" ? ts.toDate() : new Date(ts);
-              dateStr = dateObj.toLocaleString();
-            } catch {
-              dateStr = String(d.date);
-            }
-          }
-
           return {
             id: docSnap.id,
-            item: itemName,
-            amount:
-              typeof d.amount === "number" ? d.amount : Number(d.amount ?? 0),
-            status: d.status ?? "Pending",
-            date: dateStr,
-            paymentMethod: d.paymentMethod ?? "",
-          } as Order;
+            items: d.items || [],
+            subtotal: d.subtotal || 0,
+            status: d.status || "Pending",
+            placedAt: d.placedAt || "",
+          };
         });
 
-        // Separate completed vs active
-        const completedOrders = allOrders.filter(
-          (o) => o.status === "Completed"
-        );
-        const activeOrders = allOrders.filter((o) => o.status !== "Completed");
-
-        // Move completed to history
-        for (const order of completedOrders) {
-          const earnedPoints = Math.floor(order.amount * 0.01); // 1% of total purchase
-
-          // Add transaction history
-          await addDoc(collection(db, "customers", email, "transactions"), {
-            item: order.item,
-            amount: order.amount,
-            earnedPoints: earnedPoints,
-            type: "Completed Order",
-            date: new Date(),
-          });
-
-          // Update customer points
-          const customerRef = doc(db, "customers", email);
-          const customerSnap = await getDoc(customerRef);
-          if (customerSnap.exists()) {
-            const currentPoints = customerSnap.data().points || 0;
-            await updateDoc(customerRef, {
-              points: currentPoints + earnedPoints,
-            });
-          }
-
-          // optional: remove from orders collection
-          await deleteDoc(doc(db, "orders", order.id));
-        }
-
-        setOrders(activeOrders);
+        setOrders(fetchedOrders);
       } catch (err) {
         console.error("Error fetching orders:", err);
-        setOrders([]);
       } finally {
         setLoading(false);
       }
@@ -125,6 +67,16 @@ export default function Orders() {
 
     fetchOrders();
   }, [email]);
+
+  const openOrderDetails = (order: Order) => {
+    setSelectedOrder(order);
+    setModalVisible(true);
+  };
+
+  const closeModal = () => {
+    setSelectedOrder(null);
+    setModalVisible(false);
+  };
 
   return (
     <View style={styles.container}>
@@ -139,49 +91,231 @@ export default function Orders() {
           data={orders}
           keyExtractor={(item) => item.id}
           renderItem={({ item }) => (
-            <View style={styles.orderCard}>
-              <Text style={styles.itemName}>{item.item}</Text>
-              <Text>₱{item.amount}</Text>
-              <Text>Status: {item.status}</Text>
-              <Text>Payment: {item.paymentMethod}</Text>
-              <Text>Date: {item.date}</Text>
-            </View>
+            <Pressable
+              style={styles.orderCard}
+              onPress={() => openOrderDetails(item)}
+            >
+              <Text style={styles.itemTitle}>Order ID: {item.id}</Text>
+              <Text style={styles.status}>
+                Status:{" "}
+                <Text
+                  style={{
+                    color:
+                      item.status === "Completed"
+                        ? "#388e3c"
+                        : item.status === "Canceled"
+                        ? "#d32f2f"
+                        : "#f9a825",
+                    fontWeight: "bold",
+                  }}
+                >
+                  {item.status}
+                </Text>
+              </Text>
+              <Text style={styles.date}>
+                Date: {new Date(item.placedAt).toLocaleString()}
+              </Text>
+
+              <View style={styles.totalRow}>
+                <Text style={styles.totalLabel}>Subtotal:</Text>
+                <Text style={styles.totalValue}>₱{item.subtotal}</Text>
+              </View>
+            </Pressable>
           )}
         />
       )}
+
+      {/* ✅ Modal for Order Details */}
+      <Modal
+        visible={modalVisible}
+        animationType="slide"
+        transparent
+        onRequestClose={closeModal}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            {selectedOrder && (
+              <>
+                <Text style={styles.modalTitle}>Order Details</Text>
+                <Text style={styles.modalLabel}>Order ID:</Text>
+                <Text style={styles.modalText}>{selectedOrder.id}</Text>
+
+                <Text style={styles.modalLabel}>Date Placed:</Text>
+                <Text style={styles.modalText}>
+                  {new Date(selectedOrder.placedAt).toLocaleString()}
+                </Text>
+
+                <Text style={styles.modalLabel}>Status:</Text>
+                <Text style={styles.modalText}>{selectedOrder.status}</Text>
+
+                <View style={styles.modalDivider} />
+
+                <Text style={styles.modalLabel}>Items:</Text>
+                {selectedOrder.items.map((i) => (
+                  <View key={i.id} style={styles.modalItemRow}>
+                    <Text style={styles.modalItemName}>
+                      {i.name} × {i.qty}
+                    </Text>
+                    <Text style={styles.modalItemPrice}>₱{i.subtotal}</Text>
+                  </View>
+                ))}
+
+                <View style={styles.modalDivider} />
+
+                <View style={styles.modalTotalRow}>
+                  <Text style={styles.modalTotalLabel}>Total:</Text>
+                  <Text style={styles.modalTotalValue}>
+                    ₱{selectedOrder.subtotal}
+                  </Text>
+                </View>
+
+                <Pressable style={styles.closeButton} onPress={closeModal}>
+                  <Text style={styles.closeButtonText}>Close</Text>
+                </Pressable>
+              </>
+            )}
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
 
+// 🪶 Styling (matches your beige-brown cafe aesthetic)
 const styles = StyleSheet.create({
   container: {
     flex: 1,
     padding: 15,
-    backgroundColor: "#fdfcf9",
+    backgroundColor: "#fdfaf6",
   },
   header: {
     fontSize: 22,
-    fontWeight: "bold",
+    fontWeight: "700",
     color: "#4e342e",
-    marginBottom: 15,
+    textAlign: "center",
+    marginBottom: 20,
   },
   noOrders: {
     textAlign: "center",
-    marginTop: 30,
     fontSize: 16,
     color: "#8d6e63",
+    marginTop: 30,
   },
   orderCard: {
-    backgroundColor: "#fff",
-    padding: 15,
-    marginBottom: 10,
-    borderRadius: 12,
-    elevation: 2,
+    backgroundColor: "#fffaf4ff",
+    padding: 16,
+    borderRadius: 16,
+    marginBottom: 14,
+    shadowColor: "#000",
+    shadowOpacity: 0.08,
+    shadowRadius: 4,
+    shadowOffset: { width: 0, height: 2 },
+    borderWidth: 1,
+    borderColor: "#8d5937ff",
   },
-  itemName: {
+  itemTitle: {
     fontSize: 16,
-    fontWeight: "bold",
-    marginBottom: 5,
+    fontWeight: "600",
     color: "#3e2723",
+    marginBottom: 5,
+  },
+  status: {
+    fontSize: 14,
+    color: "#6d4c41",
+  },
+  date: {
+    fontSize: 13,
+    color: "#8d6e63",
+    marginBottom: 5,
+  },
+  totalRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginTop: 8,
+    borderTopWidth: 1,
+    borderTopColor: "#eee",
+    paddingTop: 6,
+  },
+  totalLabel: {
+    fontWeight: "bold",
+    color: "#4e342e",
+  },
+  totalValue: {
+    fontWeight: "bold",
+    color: "#6d4c41",
+  },
+
+  // Modal Styles
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.4)",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  modalContent: {
+    backgroundColor: "#fffdf9",
+    borderRadius: 20,
+    width: "85%",
+    padding: 20,
+    shadowColor: "#000",
+    shadowOpacity: 0.25,
+    shadowRadius: 6,
+    elevation: 10,
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: "700",
+    color: "#4e342e",
+    textAlign: "center",
+    marginBottom: 15,
+  },
+  modalLabel: {
+    fontWeight: "bold",
+    color: "#6d4c41",
+    marginTop: 8,
+  },
+  modalText: {
+    color: "#5d4037",
+  },
+  modalDivider: {
+    height: 1,
+    backgroundColor: "#e0c9a6",
+    marginVertical: 10,
+  },
+  modalItemRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginVertical: 3,
+  },
+  modalItemName: {
+    color: "#4e342e",
+  },
+  modalItemPrice: {
+    color: "#5d4037",
+  },
+  modalTotalRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginTop: 8,
+  },
+  modalTotalLabel: {
+    fontWeight: "bold",
+    color: "#3e2723",
+  },
+  modalTotalValue: {
+    fontWeight: "bold",
+    color: "#795548",
+  },
+  closeButton: {
+    marginTop: 20,
+    backgroundColor: "#6d4c41",
+    paddingVertical: 10,
+    borderRadius: 12,
+  },
+  closeButtonText: {
+    textAlign: "center",
+    color: "#fff",
+    fontWeight: "600",
+    fontSize: 16,
   },
 });

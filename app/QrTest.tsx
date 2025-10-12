@@ -23,7 +23,7 @@ export default function QrTest() {
   const router = useRouter();
   const [points, setPoints] = useState(0);
   const [tier, setTier] = useState("Bronze");
-  const [promoModalVisible, setPromoModalVisible] = useState(false);
+  const [promoModalVisible, setPromoModalVisible] = useState(true);
 
   const [nextTierInfo, setNextTierInfo] = useState({
     next: null,
