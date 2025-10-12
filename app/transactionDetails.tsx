@@ -92,8 +92,10 @@ export default function TransactionDetails() {
               <Text style={styles.itemName}>
                 {item.name && item.name.trim() !== ""
                   ? item.name
-                  : `Item ${index + 1}`}
+                  : `Item ${index + 1}`}{" "}
+                {item.category ? `(${item.category})` : ""}
               </Text>
+
               <Text style={styles.itemQty}>Qty: {item.qty}</Text>
             </View>
             <Text style={styles.itemPrice}>₱{item.price}</Text>

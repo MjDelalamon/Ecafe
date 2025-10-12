@@ -4,6 +4,7 @@ import React, { useEffect, useState } from "react";
 import {
   ActivityIndicator,
   FlatList,
+  ScrollView,
   StyleSheet,
   Text,
   TouchableOpacity,
@@ -25,7 +26,9 @@ export default function PointsHistory() {
   const router = useRouter();
   const { email } = useLocalSearchParams<{ email: string }>();
   const [history, setHistory] = useState<Transaction[]>([]);
-  const [filter, setFilter] = useState<"All" | "Points" | "Wallet">("All");
+  const [filter, setFilter] = useState<"All" | "Points" | "Wallet" | "counter">(
+    "All"
+  );
   const [sortOrder, setSortOrder] = useState<"Newest" | "Oldest">("Newest");
   const [loading, setLoading] = useState(true);
 
@@ -87,6 +90,7 @@ export default function PointsHistory() {
 
       if (filter === "Points") return method.includes("points");
       if (filter === "Wallet") return method.includes("wallet");
+      if (filter === "counter") return method.includes("over the counter");
       return true;
     })
     .sort((a, b) => {
@@ -97,12 +101,16 @@ export default function PointsHistory() {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.header}>Points & Wallet History</Text>
+      <Text style={styles.header}>Transaction History</Text>
 
       {/* 🔸 Filter + Sort Bar */}
       <View style={styles.filterContainer}>
-        <View style={styles.filterGroup}>
-          {["All", "Points", "Wallet"].map((option) => (
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.filterGroup}
+        >
+          {["All", "Points", "Wallet", "counter"].map((option) => (
             <TouchableOpacity
               key={option}
               style={[
@@ -121,18 +129,17 @@ export default function PointsHistory() {
               </Text>
             </TouchableOpacity>
           ))}
-        </View>
-
-        <TouchableOpacity
-          style={styles.sortButton}
-          onPress={() =>
-            setSortOrder(sortOrder === "Newest" ? "Oldest" : "Newest")
-          }
-        >
-          <Text style={styles.sortText}>
-            {sortOrder === "Newest" ? "⬇ Newest" : "⬆ Oldest"}
-          </Text>
-        </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.sortButton}
+            onPress={() =>
+              setSortOrder(sortOrder === "Newest" ? "Oldest" : "Newest")
+            }
+          >
+            <Text style={styles.sortText}>
+              {sortOrder === "Newest" ? "⬇ Newest" : "⬆ Oldest"}
+            </Text>
+          </TouchableOpacity>
+        </ScrollView>
       </View>
 
       {/* 🔸 Transaction List */}
@@ -173,10 +180,15 @@ export default function PointsHistory() {
                 <Text style={styles.date}>{item.date ?? "No date"}</Text>
               </View>
               <Text style={styles.amount}>
-                {item.type.toLowerCase().includes("redeem") ||
-                item.type.toLowerCase().includes("purchase")
-                  ? "- ₱" + item.amount
-                  : "+ ₱" + item.amount}
+                {item.paymentMethod.toLowerCase().includes("points")
+                  ? `${
+                      item.type.toLowerCase().includes("points") ? "- " : "+ "
+                    }${item.amount} pts`
+                  : `${
+                      item.type.toLowerCase().includes("purchase")
+                        ? "- ₱"
+                        : "- ₱"
+                    }${item.amount}`}
               </Text>
             </TouchableOpacity>
           )}

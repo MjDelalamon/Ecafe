@@ -1,40 +1,45 @@
 import { collection, doc, getDocs, query, updateDoc, where } from "firebase/firestore";
-import { db } from "../../Firebase/firebaseConfig"; // adjust path kung nasa ibang folder
+import { db } from "../../Firebase/firebaseConfig";
 
-// Function para ma-detect ang pinaka madalas na inorder na category
 export async function updateFavoriteCategory(customerEmail: string): Promise<void> {
   try {
-    const ordersRef = collection(db, "orders");
-    const q = query(ordersRef, where("customerEmail", "==", customerEmail));
-    const querySnapshot = await getDocs(q);
+    const transactionsRef = collection(db, "transactions");
+    const q = query(
+      transactionsRef,
+      where("customerEmail", "==", customerEmail),
+      where("Status", "==", "Completed")
+    );
 
+    const querySnapshot = await getDocs(q);
     const categoryCount: Record<string, number> = {};
 
     querySnapshot.forEach((docSnap) => {
       const data = docSnap.data();
-      const category = data.category;
-      if (category) {
-        categoryCount[category] = (categoryCount[category] || 0) + 1;
-      }
+      const items = data.items || [];
+
+      items.forEach((item: any) => {
+        const category = item.category;
+        if (category) {
+          categoryCount[category] = (categoryCount[category] || 0) + item.qty;
+        }
+      });
     });
 
-    // Kunin ang pinaka-frequent na category
-    let favoriteCategory: string | null = null;
-    let maxCount = 0;
-    for (const [category, count] of Object.entries(categoryCount)) {
-      if (count > maxCount) {
-        favoriteCategory = category;
-        maxCount = count;
-      }
-    }
+    const sortedCategories = Object.entries(categoryCount).sort((a, b) => b[1] - a[1]);
+    const favoriteCategory = sortedCategories[0]?.[0] || null;
+    const secondaryCategory = sortedCategories[1]?.[0] || null;
 
-    // Update sa customer document
     if (favoriteCategory) {
       const customerDoc = doc(db, "customers", customerEmail);
-      await updateDoc(customerDoc, { favoriteCategory });
+      await updateDoc(customerDoc, {
+        favoriteCategory,
+        secondaryCategory: secondaryCategory || null
+      });
+
       console.log("✅ Favorite category updated:", favoriteCategory);
+      if (secondaryCategory) console.log("⭐ Secondary category:", secondaryCategory);
     } else {
-      console.log("⚠️ No favorite category found.");
+      console.log("⚠️ No favorite category found for this customer.");
     }
   } catch (error) {
     console.error("❌ Error updating favorite category:", error);
