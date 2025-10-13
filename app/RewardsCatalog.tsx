@@ -159,7 +159,7 @@ export default function MenuList() {
       // For now qty = 1 (extend UI later to accept quantity)
       const qty = 1;
       const subtotal = selectedItem.price * qty;
-      const pointsEarned = Math.round(subtotal * 0.01); // 1% points
+
       const orderId = `ORD-${Date.now()}`;
 
       const orderPayload = {
@@ -167,19 +167,14 @@ export default function MenuList() {
         id: orderId,
         subtotal,
         status: "Pending",
-        placedAt: new Date().toISOString(), // human-readable placedAt
-        createdAt: serverTimestamp(), // Firestore timestamp for queries
+        placedAt: new Date().toISOString(), // readable
+        createdAt: serverTimestamp(), // for sorting/filter
         items: [
           {
-            id: selectedItem.id,
             name: selectedItem.name,
             price: selectedItem.price,
             qty,
-            paidByWallet: method === "wallet", // boolean
-            placedAt: new Date().toISOString(),
-            pointsEarned,
-            status: "Pending",
-            subtotal,
+            category: selectedItem.category, // ✅ added
           },
         ],
       };
