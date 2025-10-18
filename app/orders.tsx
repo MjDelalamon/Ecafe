@@ -156,7 +156,7 @@ export default function Orders() {
                     <Text style={styles.modalItemName}>
                       {i.name} × {i.qty}
                     </Text>
-                    <Text style={styles.modalItemPrice}>₱{i.subtotal}</Text>
+                    <Text style={styles.modalItemPrice}>{selectedOrder.subtotal} pts.</Text>
                   </View>
                 ))}
 
@@ -165,7 +165,7 @@ export default function Orders() {
                 <View style={styles.modalTotalRow}>
                   <Text style={styles.modalTotalLabel}>Total:</Text>
                   <Text style={styles.modalTotalValue}>
-                    ₱{selectedOrder.subtotal}
+                    {selectedOrder.subtotal} pts.
                   </Text>
                 </View>
 

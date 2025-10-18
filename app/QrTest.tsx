@@ -33,34 +33,19 @@ export default function QrTest() {
   const [profileModalVisible, setProfileModalVisible] = useState(false);
   const [userInfo, setUserInfo] = useState<any>(null);
 
-  // ✅ Determine Tier Based on Points
-  const determineTier = (pts: number) => {
-    if (pts >= 3000) return "Platinum";
-    if (pts >= 1500) return "Gold";
-    if (pts >= 500) return "Silver";
+  // ✅ Determine Tier Based on Total Spent
+  const determineTier = (spent: number) => {
+    if (spent >= 15000) return "Gold";
+    if (spent >= 5000) return "Silver";
     return "Bronze";
   };
 
-  // ✅ Get Next Tier Info
-  const getNextTierInfo = (pts: number) => {
-    if (pts < 500)
-      return {
-        next: "Silver",
-        remaining: 500 - pts,
-        progress: (pts / 500) * 100,
-      };
-    if (pts < 1500)
-      return {
-        next: "Gold",
-        remaining: 1500 - pts,
-        progress: ((pts - 500) / 1000) * 100,
-      };
-    if (pts < 3000)
-      return {
-        next: "Platinum",
-        remaining: 3000 - pts,
-        progress: ((pts - 1500) / 1500) * 100,
-      };
+  // ✅ Get Next Tier Info based on Total Spent
+  const getNextTierInfo = (spent: number) => {
+    if (spent < 5000)
+      return { next: "Silver", remaining: 5000 - spent, progress: (spent / 5000) * 100 };
+    if (spent < 15000)
+      return { next: "Gold", remaining: 15000 - spent, progress: ((spent - 5000) / 10000) * 100 };
     return { next: null, remaining: 0, progress: 100 };
   };
 
@@ -69,23 +54,25 @@ export default function QrTest() {
     if (!qrValue) return;
     try {
       const customerRef = doc(db, "customers", qrValue);
-      // Set status to "active" when user is in the app
+      // Set status to "Active" when user is in the app
       await updateDoc(customerRef, { status: "Active" });
 
       const snap = await getDoc(customerRef);
       if (snap.exists()) {
         const data = snap.data();
         setUserInfo(data); // Save user info for profile modal
+
+        // Display points
         const pts = data.points || 0;
         setPoints(pts);
 
-        const newTier = determineTier(pts);
+        // Tier and progress based on totalSpent
+        const spent = data.totalSpent || 0;
+        const newTier = determineTier(spent);
         setTier(newTier);
+        setNextTierInfo(getNextTierInfo(spent));
 
-        // ✅ Calculate progress to next tier
-        setNextTierInfo(getNextTierInfo(pts));
-
-        // ✅ Automatically update tier in Firestore if it's different
+        // Automatically update tier in Firestore if changed
         if (data.tier !== newTier) {
           await updateDoc(customerRef, { tier: newTier });
           console.log("Tier updated in Firestore to:", newTier);
@@ -123,9 +110,6 @@ export default function QrTest() {
 
   return (
     <View style={styles.container}>
-      {/* Profile Icon at the Top Right */}
-
-      {/* QR Code Section */}
       <View style={styles.qrContainer}>
         {qrValue ? (
           <QRCode value={qrValue} size={180} />
@@ -135,31 +119,31 @@ export default function QrTest() {
         <Text style={styles.barcodeText}>{mobile}</Text>
 
         <View style={styles.pointsBox}>
-          <Text style={styles.pointsLabel}>Rewards Balance</Text>
           <Text style={styles.pointsValue}>{points.toFixed(2)} Pts.</Text>
           <Text style={styles.tierText}>Tier: {tier}</Text>
 
-          {/* ✅ Progress to Next Tier */}
           {nextTierInfo.next ? (
             <>
-              <Text style={styles.nextTierText}>
-                {nextTierInfo.remaining.toFixed(0)} points more to reach{" "}
-                <Text style={{ fontWeight: "bold", color: "#795548" }}>
-                  {nextTierInfo.next}
-                </Text>
-              </Text>
-              <View style={styles.progressBar}>
-                <View
-                  style={[
-                    styles.progressFill,
-                    { width: `${nextTierInfo.progress}%` },
-                  ]}
-                />
+              <View style={styles.progressBarContainer}>
+                <View style={styles.progressBar}>
+                  <View
+                    style={[
+                      styles.progressFill,
+                      { width: `${nextTierInfo.progress}%` },
+                    ]}
+                  />
+                </View>
               </View>
+              <Text style={styles.nextTierText}>
+  ₱{nextTierInfo.remaining.toFixed(0)} more in purchases to reach{" "}
+  <Text style={{ fontWeight: "bold", color: "#795548" }}>
+    {nextTierInfo.next}
+  </Text>
+</Text>
             </>
           ) : (
             <Text style={styles.maxTierText}>
-              You’ve reached the highest tier — Platinum! 🏆
+              You’ve reached the highest tier — Gold! 🏆
             </Text>
           )}
         </View>
@@ -170,7 +154,6 @@ export default function QrTest() {
         </Text>
       </View>
 
-      {/* Action Buttons */}
       <ScrollView style={{ flex: 1, width: "100%" }}>
         <View style={styles.grid}>
           <TouchableOpacity style={styles.gridItem} onPress={handleWallet}>
@@ -197,7 +180,6 @@ export default function QrTest() {
             <Text style={styles.gridText}>Orders</Text>
           </TouchableOpacity>
 
-          {/* Profile Button */}
           <TouchableOpacity style={styles.gridItem} onPress={handleProfile}>
             <Ionicons name="person-circle-outline" size={32} color="#795548" />
             <Text style={styles.gridText}>Profile</Text>
@@ -212,7 +194,6 @@ export default function QrTest() {
         </View>
       </ScrollView>
 
-      {/* Back Button */}
       <TouchableOpacity style={styles.backButton} onPress={handleBack}>
         <Text style={styles.backButtonText}>⬅ Log out</Text>
       </TouchableOpacity>
@@ -259,7 +240,7 @@ export default function QrTest() {
         </View>
       </Modal>
 
-      {/* Promotions Modal (inline) */}
+      {/* Promotions Modal */}
       <Modal
         visible={promoModalVisible}
         transparent
@@ -281,10 +262,7 @@ export default function QrTest() {
               Rewards Catalog
             </Text>
             <TouchableOpacity
-              style={[
-                styles.backButton,
-                { alignSelf: "center", marginTop: 12 },
-              ]}
+              style={[styles.backButton, { alignSelf: "center", marginTop: 12 }]}
               onPress={() => setPromoModalVisible(false)}
             >
               <Text style={styles.backButtonText}>Close</Text>
@@ -296,14 +274,9 @@ export default function QrTest() {
   );
 }
 
-// ✅ All Styles
+// ✅ Styles same as original
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "#fdfcf9",
-    padding: 15,
-    alignItems: "center",
-  },
+  container: { flex: 1, backgroundColor: "#fdfcf9", padding: 15, alignItems: "center" },
   qrContainer: {
     alignItems: "center",
     marginTop: 0,
@@ -317,69 +290,17 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 3 },
     shadowRadius: 5,
   },
-  barcodeText: {
-    marginTop: 8,
-    fontSize: 16,
-    letterSpacing: 2,
-    fontWeight: "600",
-    color: "#4e342e",
-  },
-  pointsBox: {
-    alignItems: "center",
-    marginBottom: 20,
-  },
-  pointsLabel: {
-    fontSize: 16,
-    fontWeight: "bold",
-    color: "#4e342e",
-  },
-  pointsValue: {
-    fontSize: 30,
-    fontWeight: "bold",
-    color: "#795548",
-    marginTop: 4,
-  },
-  tierText: {
-    marginTop: 6,
-    fontSize: 16,
-    fontWeight: "bold",
-    color: "#8d6e63",
-  },
-  nextTierText: {
-    marginTop: 8,
-    fontSize: 13,
-    color: "#5d4037",
-  },
-  progressBar: {
-    width: "100%",
-    height: 10,
-    backgroundColor: "#d7ccc8",
-    borderRadius: 10,
-    marginTop: 6,
-    overflow: "hidden",
-  },
-  progressFill: {
-    height: "100%",
-    backgroundColor: "#795548",
-  },
-  maxTierText: {
-    color: "#388e3c",
-    marginTop: 8,
-    fontWeight: "600",
-  },
-  scanHint: {
-    fontSize: 12,
-    color: "#6d4c41",
-    marginTop: 4,
-    textAlign: "center",
-  },
-  grid: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    justifyContent: "space-between",
-    width: "100%",
-    marginTop: 10,
-  },
+  barcodeText: { marginTop: 8, fontSize: 16, letterSpacing: 2, fontWeight: "600", color: "#4e342e" },
+  pointsBox: { alignItems: "center", marginBottom: 20 },
+  pointsValue: { fontSize: 30, fontWeight: "bold", color: "#795548", marginTop: 4 },
+  tierText: { marginTop: 6, fontSize: 16, fontWeight: "bold", color: "#8d6e63" },
+  nextTierText: { marginTop: 8, fontSize: 13, color: "#5d4037" },
+  progressBarContainer: { width: 250, marginTop: 8, borderRadius: 10, overflow: "hidden" },
+  progressBar: { width: "100%", height: 7, backgroundColor: "#d7ccc8", borderRadius: 10 },
+  progressFill: { height: "100%", backgroundColor: "#795548", borderRadius: 10 },
+  maxTierText: { color: "#388e3c", marginTop: 8, fontWeight: "600" },
+  scanHint: { fontSize: 12, color: "#6d4c41", marginTop: 4, textAlign: "center" },
+  grid: { flexDirection: "row", flexWrap: "wrap", justifyContent: "space-between", width: "100%", marginTop: 10 },
   gridItem: {
     width: "47%",
     backgroundColor: "#fff",
@@ -393,77 +314,14 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 2 },
     shadowRadius: 4,
   },
-  gridText: {
-    marginTop: 8,
-    fontSize: 14,
-    fontWeight: "600",
-    textAlign: "center",
-    color: "#3e2723",
-  },
-  backButton: {
-    marginTop: 20,
-    paddingVertical: 10,
-    paddingHorizontal: 20,
-  },
-  backButtonText: {
-    fontSize: 16,
-    color: "#6d4c41",
-    fontWeight: "bold",
-  },
-  error: {
-    fontSize: 16,
-    color: "red",
-  },
-  profileIcon: {
-    position: "absolute",
-    top: 30,
-    right: 20,
-    zIndex: 10,
-    backgroundColor: "#fff",
-    borderRadius: 22,
-    elevation: 3,
-    shadowColor: "#000",
-    shadowOpacity: 0.08,
-    shadowRadius: 4,
-    shadowOffset: { width: 0, height: 2 },
-  },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: "rgba(0,0,0,0.35)",
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  profileModalBox: {
-    backgroundColor: "#fff",
-    padding: 28,
-    borderRadius: 18,
-    width: "80%",
-    alignItems: "flex-start",
-    position: "relative",
-  },
-  profileModalClose: {
-    position: "absolute",
-    top: 10,
-    right: 12,
-    zIndex: 2,
-  },
-  profileTitle: {
-    fontSize: 22,
-    fontWeight: "bold",
-    color: "#795548",
-    alignSelf: "center",
-    marginBottom: 10,
-    marginTop: 10,
-  },
-  profileLabel: {
-    fontSize: 15,
-    color: "#6d4c41",
-    fontWeight: "bold",
-    marginTop: 8,
-  },
-  profileValue: {
-    fontSize: 15,
-    color: "#3e2723",
-    marginBottom: 2,
-  },
+  gridText: { marginTop: 8, fontSize: 14, fontWeight: "600", textAlign: "center", color: "#3e2723" },
+  backButton: { marginTop: 20, paddingVertical: 10, paddingHorizontal: 20 },
+  backButtonText: { fontSize: 16, color: "#6d4c41", fontWeight: "bold" },
+  error: { fontSize: 16, color: "red" },
+  modalOverlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.35)", justifyContent: "center", alignItems: "center" },
+  profileModalBox: { backgroundColor: "#fff", padding: 28, borderRadius: 18, width: "80%", alignItems: "flex-start", position: "relative" },
+  profileModalClose: { position: "absolute", top: 10, right: 12, zIndex: 2 },
+  profileTitle: { fontSize: 22, fontWeight: "bold", color: "#795548", alignSelf: "center", marginBottom: 10, marginTop: 10 },
+  profileLabel: { fontSize: 15, color: "#6d4c41", fontWeight: "bold", marginTop: 8 },
+  profileValue: { fontSize: 15, color: "#3e2723", marginBottom: 2 },
 });

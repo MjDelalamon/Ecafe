@@ -251,7 +251,7 @@ export default function MenuList() {
             <View style={styles.cardContent}>
               <Text style={styles.itemName}>{item.name}</Text>
               <Text style={styles.itemDesc}>{item.description}</Text>
-              <Text style={styles.itemPrice}>₱{item.price}</Text>
+              <Text style={styles.itemPrice}>{item.price} pts.</Text>
               {!item.availability && (
                 <Text style={styles.unavailableText}>Unavailable</Text>
               )}
@@ -272,7 +272,7 @@ export default function MenuList() {
               <>
                 <Text style={styles.modalTitle}>{selectedItem.name}</Text>
                 <Text style={styles.modalDesc}>{selectedItem.description}</Text>
-                <Text style={styles.modalPrice}>₱{selectedItem.price}</Text>
+                <Text style={styles.modalPrice}>{selectedItem.price} pts.</Text>
 
                 <Text style={styles.balanceText}>Points: {points}</Text>
 
