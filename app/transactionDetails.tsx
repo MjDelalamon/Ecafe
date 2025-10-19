@@ -163,21 +163,39 @@ const styles = StyleSheet.create({
     textAlign: "center",
   },
   itemCard: {
-    backgroundColor: "#fff",
-    padding: 14,
-    borderRadius: 12,
-    marginBottom: 10,
-    flexDirection: "row",
-    justifyContent: "space-between",
-    shadowColor: "#000",
-    shadowOpacity: 0.05,
-    shadowOffset: { width: 0, height: 2 },
-    shadowRadius: 4,
-  },
-  itemLeft: { flexDirection: "column" },
-  itemName: { fontSize: 16, fontWeight: "600", color: "#3e2723" },
-  itemQty: { fontSize: 14, color: "#8d6e63" },
-  itemPrice: { fontSize: 16, fontWeight: "700", color: "#3e2723" },
+  backgroundColor: "#fff",
+  padding: 14,
+  borderRadius: 12,
+  marginBottom: 10,
+  flexDirection: "row",
+  justifyContent: "space-between",
+  alignItems: "center",
+  shadowColor: "#000",
+  shadowOpacity: 0.05,
+  shadowOffset: { width: 0, height: 2 },
+  shadowRadius: 4,
+},
+itemLeft: { 
+  flexDirection: "column", 
+  flex: 1,          // allows the left section to take available space
+  marginRight: 10,  // space between name/qty and price
+},
+itemName: { 
+  fontSize: 16, 
+  fontWeight: "600", 
+  color: "#3e2723",
+  flexWrap: "wrap",    // wrap long text
+  flexShrink: 1,       // allow shrinking if needed
+},
+itemQty: { fontSize: 14, color: "#8d6e63", marginTop: 4 },
+itemPrice: { 
+  fontSize: 16, 
+  fontWeight: "700", 
+  color: "#3e2723",
+  textAlign: "right",
+  flexShrink: 0,       // prevent price from shrinking
+},
+
   noItems: {
     textAlign: "center",
     fontSize: 14,
