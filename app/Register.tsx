@@ -1,5 +1,6 @@
 import { Picker } from "@react-native-picker/picker";
 import { useRouter } from "expo-router";
+import { checkMobileExists } from "./functions/checkMobileExists";
 
 import React, { useState } from "react";
 import {
@@ -22,7 +23,7 @@ export default function Register() {
   const [email, setEmail] = useState<string>("");
   const [mobile, setMobile] = useState<string>("");
   const [password, setPassword] = useState<string>("");
-  const [confirmPassword, setConfirmPassword] = useState<string>(""); // added
+  const [confirmPassword, setConfirmPassword] = useState<string>("");
   const [gender, setGender] = useState<string>("");
   const [loading, setLoading] = useState(false);
   const [showTerms, setShowTerms] = useState(false);
@@ -30,6 +31,7 @@ export default function Register() {
   const router = useRouter();
 
   const handleContinue = async () => {
+    // ✅ Check if all fields are filled
     if (
       !lastName ||
       !firstName ||
@@ -43,26 +45,44 @@ export default function Register() {
       return;
     }
 
+    // ✅ Check if passwords match
     if (password !== confirmPassword) {
       Alert.alert("Error", "Passwords do not match");
+      return;
+    }
+
+    // ✅ Validate mobile number (must be 11 digits and start with 09)
+    const mobileTrimmed = mobile.trim();
+    const mobileRegex = /^09\d{9}$/;
+
+    if (!mobileRegex.test(mobileTrimmed)) {
+      Alert.alert("Error", "Please enter a valid 11-digit mobile number starting with 09.");
       return;
     }
 
     setLoading(true);
 
     try {
+      // ✅ Check if mobile already exists in Firestore
+      const exists = await checkMobileExists(mobileTrimmed);
+      if (exists) {
+        setLoading(false);
+        Alert.alert("Error", "This mobile number is already registered.");
+        return;
+      }
+
       const fullName = `${firstName} ${lastName}`;
 
       const result = await addUserToFirestore(
         fullName,
         email,
-        mobile,
+        mobileTrimmed,
         password,
         0,
         0,
         "Inactive",
         "Bronze",
-        gender // pass gender to Firestore
+        gender
       );
 
       if (result.success) {
@@ -148,31 +168,24 @@ export default function Register() {
         secureTextEntry
         placeholderTextColor="#9c8b7a"
       />
-      {/* Inline mismatch hint */}
       {confirmPassword.length > 0 && password !== confirmPassword && (
         <Text style={styles.mismatchText}>Passwords do not match</Text>
       )}
+
       <View style={styles.pickerContainer}>
-        <Picker
-          selectedValue={gender}
-          onValueChange={setGender}
-          style={styles.picker}
-        >
+        <Picker selectedValue={gender} onValueChange={setGender} style={styles.picker}>
           <Picker.Item label="Select Gender" value="" />
           <Picker.Item label="Male" value="Male" />
           <Picker.Item label="Female" value="Female" />
         </Picker>
       </View>
 
-      {/* Register Button → show terms modal */}
-      <TouchableOpacity
-        style={styles.button}
-        onPress={() => setShowTerms(true)}
-      >
+      <TouchableOpacity style={styles.button} onPress={() => setShowTerms(true)}>
         <Text style={styles.buttonText}>Register</Text>
       </TouchableOpacity>
+
       <TouchableOpacity style={styles.buttonBack} onPress={Back}>
-        <Text style={styles.buttonTextBack}> Back </Text>
+        <Text style={styles.buttonTextBack}>Back</Text>
       </TouchableOpacity>
 
       {/* Loading Modal */}
@@ -189,11 +202,7 @@ export default function Register() {
       <Modal visible={showTerms} transparent animationType="fade">
         <View style={styles.modalOverlay}>
           <View style={styles.termsBox}>
-            {/* Close Button (X) */}
-            <TouchableOpacity
-              style={styles.closeButton}
-              onPress={() => setShowTerms(false)}
-            >
+            <TouchableOpacity style={styles.closeButton} onPress={() => setShowTerms(false)}>
               <Text style={styles.closeText}>×</Text>
             </TouchableOpacity>
 
@@ -201,16 +210,11 @@ export default function Register() {
             <View style={{ maxHeight: 300 }}>
               <ScrollView showsVerticalScrollIndicator={true}>
                 <Text style={styles.termsText}>
-                  1. By creating an account, you agree to provide accurate
-                  information. {"\n\n"}
-                  2. Wallet balances, rewards, and transactions are managed
-                  within the system. {"\n\n"}
-                  3. Admin reserves the right to suspend accounts violating
-                  policies. {"\n\n"}
-                  4. Promotions, rewards, and offers may change without prior
-                  notice. {"\n\n"}
-                  5. By using this app, you agree to the collection of necessary
-                  data for transactions. {"\n\n"}
+                  1. By creating an account, you agree to provide accurate information. {"\n\n"}
+                  2. Wallet balances, rewards, and transactions are managed within the system. {"\n\n"}
+                  3. Admin reserves the right to suspend accounts violating policies. {"\n\n"}
+                  4. Promotions, rewards, and offers may change without prior notice. {"\n\n"}
+                  5. By using this app, you agree to the collection of necessary data for transactions. {"\n\n"}
                 </Text>
               </ScrollView>
             </View>
@@ -219,7 +223,7 @@ export default function Register() {
               style={styles.acceptButton}
               onPress={() => {
                 setShowTerms(false);
-                handleContinue(); // tuloy register kapag accepted
+                handleContinue();
               }}
             >
               <Text style={styles.acceptText}>Accept & Continue</Text>
@@ -295,7 +299,6 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: "bold",
   },
-
   modalContent: {
     backgroundColor: "#fff",
     padding: 30,

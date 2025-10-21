@@ -75,9 +75,7 @@ export default function QrTest() {
 
           Alert.alert(
             "🎉 New Promotions Available!",
-            `You have ${availablePromos.length} promo${
-              availablePromos.length > 1 ? "s" : ""
-            } for your ${tier} tier:\n\n${promoNames}`
+            `Check your Promotions page to see the latest offers for your tier`,
           );
         }
       } catch (error) {

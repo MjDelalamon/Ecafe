@@ -1,11 +1,5 @@
 import { router, useLocalSearchParams } from "expo-router";
-import {
-  collection,
-  doc,
-  getDoc,
-  getDocs,
-  setDoc
-} from "firebase/firestore";
+import { collection, doc, getDoc, getDocs, setDoc } from "firebase/firestore";
 import { useEffect, useState } from "react";
 import {
   Alert,
@@ -20,6 +14,7 @@ import {
 import QRCode from "react-native-qrcode-svg";
 import { db } from "../Firebase/firebaseConfig";
 
+// 🔹 Interface for Promotion
 interface PromotionType {
   id: string;
   title: string;
@@ -33,6 +28,7 @@ interface PromotionType {
 
 export default function PromotionsPage() {
   const { email } = useLocalSearchParams<{ email: string }>();
+
   const [promos, setPromos] = useState<PromotionType[]>([]);
   const [userTier, setUserTier] = useState<string | null>(null);
   const [claimedPromos, setClaimedPromos] = useState<any[]>([]);
@@ -40,76 +36,84 @@ export default function PromotionsPage() {
   const [selectedQR, setSelectedQR] = useState<string | null>(null);
   const [selectedTitle, setSelectedTitle] = useState<string | null>(null);
 
+  // 🔹 Fetch Data on Mount
   useEffect(() => {
-  const fetchData = async () => {
+    const fetchData = async () => {
+      if (!email) return;
+
+      const userRef = doc(db, "customers", email);
+      const userSnap = await getDoc(userRef);
+      if (!userSnap.exists()) return;
+
+      const tier = userSnap.data().tier;
+      setUserTier(tier);
+
+      // 🔸 Fetch available promos
+      const promoSnap = await getDocs(collection(db, "promotions"));
+      const now = new Date();
+
+      // 🔸 Get user's favorite category
+      const favoriteCategory = userSnap.data().favoriteCategory;
+
+      const allPromos = promoSnap.docs
+        .map((doc) => ({ id: doc.id, ...doc.data() }))
+        .filter((p: any) => {
+          const matchesTier = p.applicableTiers?.includes(tier);
+          const matchesCategory = !p.category || p.category === favoriteCategory;
+          const notExpired = !p.endDate || new Date(p.endDate) >= now;
+          return matchesTier && matchesCategory && notExpired;
+        }) as PromotionType[];
+
+      setPromos(allPromos);
+
+      // 🔸 Fetch claimed promos
+      const claimedSnap = await getDocs(
+        collection(db, `customers/${email}/claimedPromos`)
+      );
+      const claimedList = claimedSnap.docs.map((doc) => ({
+        id: doc.id,
+        ...doc.data(),
+      }));
+      setClaimedPromos(claimedList);
+    };
+
+    fetchData();
+  }, [email]);
+
+  // 🔹 Handle Promo Claim
+  const handleClaim = async (promo: PromotionType) => {
     if (!email) return;
 
-    const userRef = doc(db, "customers", email);
-    const userSnap = await getDoc(userRef);
-    if (!userSnap.exists()) return;
-
-    const tier = userSnap.data().tier;
-    setUserTier(tier);
-
-    // 🔹 Fetch available promos
-    const promoSnap = await getDocs(collection(db, "promotions"));
     const now = new Date();
-    const allPromos = promoSnap.docs
-      .map((doc) => ({ id: doc.id, ...doc.data() }))
-      .filter(
-        (p: any) =>
-          p.applicableTiers?.includes(tier) &&
-          (!p.endDate || new Date(p.endDate) >= now)
-      ) as PromotionType[];
+    if (promo.endDate && new Date(promo.endDate) < now) {
+      Alert.alert("Promo expired", "This promo can no longer be claimed.");
+      return;
+    }
 
-    setPromos(allPromos);
+    // ✅ Create a record in Firestore before showing QR
+    const promoRef = doc(db, `customers/${email}/claimedPromos/${promo.id}`);
+    await setDoc(promoRef, {
+      title: promo.title,
+      description: promo.description,
+      price: promo.price,
+      promoType: promo.promoType || "global",
+      startDate: promo.startDate,
+      endDate: promo.endDate,
+      isUsed: false, // Staff will mark as used later
+      claimedAt: new Date().toISOString(),
+    });
 
-    // 🔹 Fetch claimed promos
-    const claimedSnap = await getDocs(collection(db, `customers/${email}/claimedPromos`));
-    const claimedList = claimedSnap.docs.map((doc) => ({
-      id: doc.id,
-      ...doc.data(),
-    }));
-    setClaimedPromos(claimedList);
+    // ✅ Then generate QR
+    const qrCodeValue = JSON.stringify({
+      type: "PROMO",
+      promoId: promo.id,
+      email: email,
+    });
+
+    setSelectedQR(qrCodeValue);
+    setSelectedTitle(promo.title);
+    setQrModalVisible(true);
   };
-
-  fetchData();
-}, [email]);
-
-
- const handleClaim = async (promo: PromotionType) => {
-  if (!email) return;
-
-  const now = new Date();
-  if (promo.endDate && new Date(promo.endDate) < now) {
-    Alert.alert("Promo expired", "This promo can no longer be claimed.");
-    return;
-  }
-
-  // ✅ Create a record in Firestore before showing QR
-  const promoRef = doc(db, `customers/${email}/claimedPromos/${promo.id}`);
-  await setDoc(promoRef, {
-    title: promo.title,
-    description: promo.description,
-    price: promo.price,
-    promoType: promo.promoType || "global",
-    startDate: promo.startDate,
-    endDate: promo.endDate,
-    isUsed: false, // staff will mark as used later
-    claimedAt: new Date().toISOString(),
-  });
-
-  // ✅ Then generate QR
-  const qrCodeValue = JSON.stringify({
-    type: "PROMO",
-    promoId: promo.id,
-    email: email,
-  });
-
-  setSelectedQR(qrCodeValue);
-  setSelectedTitle(promo.title);
-  setQrModalVisible(true);
-};
 
   return (
     <View style={{ flex: 1, backgroundColor: "#fdfcf9" }}>
@@ -122,6 +126,7 @@ export default function PromotionsPage() {
           </Text>
         )}
 
+        {/* 🔹 Available Promos */}
         {promos.length === 0 ? (
           <Text style={styles.noPromo}>
             No promotions available for your tier.
@@ -169,11 +174,15 @@ export default function PromotionsPage() {
           })
         )}
 
-        {/* 🔹 PURCHASED PROMOS SECTION */}
-        <Text style={[styles.header, { marginTop: 20 }]}>Your Purchased Promos</Text>
+        {/* 🔹 Purchased Promos */}
+        <Text style={[styles.header, { marginTop: 20 }]}>
+          Your Purchased Promos
+        </Text>
 
         {claimedPromos.length === 0 ? (
-          <Text style={styles.noPromo}>You haven’t purchased any promos yet.</Text>
+          <Text style={styles.noPromo}>
+            You haven’t purchased any promos yet.
+          </Text>
         ) : (
           claimedPromos.map((promo) => (
             <TouchableOpacity
@@ -193,7 +202,8 @@ export default function PromotionsPage() {
               <Text style={styles.priceTag}>₱{promo.price}</Text>
               {promo.endDate && (
                 <Text style={styles.expiryText}>
-                  Expires on: {new Date(promo.endDate).toLocaleDateString()}
+                  Expires on:{" "}
+                  {new Date(promo.endDate).toLocaleDateString()}
                 </Text>
               )}
             </TouchableOpacity>
@@ -201,7 +211,7 @@ export default function PromotionsPage() {
         )}
       </ScrollView>
 
-      {/* 🔹 QR MODAL */}
+      {/* 🔹 QR Modal */}
       <Modal
         transparent
         animationType="fade"
@@ -211,14 +221,11 @@ export default function PromotionsPage() {
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
             <Text style={styles.modalTitle}>{selectedTitle}</Text>
-
             {selectedQR && <QRCode value={selectedQR} size={220} />}
-
             <Text style={styles.instructions}>
               📱 Please show this QR code to the staff to confirm your promo
               purchase.
             </Text>
-
             <TouchableOpacity
               onPress={() => setQrModalVisible(false)}
               style={styles.closeButton}
@@ -230,20 +237,28 @@ export default function PromotionsPage() {
       </Modal>
     </View>
   );
-  
 }
 
-// 🎨 STYLES
+// 🎨 Styles
 const styles = StyleSheet.create({
-  container: { padding: 20 },
+  container: {
+    padding: 20,
+  },
   header: {
     fontSize: 22,
     fontWeight: "bold",
     color: "#4e342e",
     marginBottom: 10,
   },
-  subHeader: { fontSize: 16, color: "#6d4c41", marginBottom: 20 },
-  highlight: { fontWeight: "bold", color: "#795548" },
+  subHeader: {
+    fontSize: 16,
+    color: "#6d4c41",
+    marginBottom: 20,
+  },
+  highlight: {
+    fontWeight: "bold",
+    color: "#795548",
+  },
   noPromo: {
     textAlign: "center",
     fontSize: 16,
@@ -270,15 +285,27 @@ const styles = StyleSheet.create({
     borderTopRightRadius: 14,
     marginBottom: 10,
   },
-  promoTitle: { fontSize: 18, fontWeight: "700", color: "#3e2723" },
-  promoDescription: { fontSize: 14, color: "#5d4037", marginTop: 4 },
+  promoTitle: {
+    fontSize: 18,
+    fontWeight: "700",
+    color: "#3e2723",
+  },
+  promoDescription: {
+    fontSize: 14,
+    color: "#5d4037",
+    marginTop: 4,
+  },
   priceTag: {
     fontSize: 16,
     fontWeight: "bold",
     color: "#6d4c41",
     marginTop: 6,
   },
-  expiryText: { fontSize: 12, color: "#8d6e63", marginTop: 5 },
+  expiryText: {
+    fontSize: 12,
+    color: "#8d6e63",
+    marginTop: 5,
+  },
   buyButton: {
     backgroundColor: "#795548",
     paddingVertical: 10,
@@ -286,7 +313,11 @@ const styles = StyleSheet.create({
     marginTop: 12,
     alignItems: "center",
   },
-  buyButtonText: { color: "#fff", fontWeight: "bold", fontSize: 15 },
+  buyButtonText: {
+    color: "#fff",
+    fontWeight: "bold",
+    fontSize: 15,
+  },
   modalOverlay: {
     flex: 1,
     backgroundColor: "rgba(0,0,0,0.6)",
@@ -320,5 +351,8 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     borderRadius: 8,
   },
-  closeText: { color: "#fff", fontWeight: "bold" },
+  closeText: {
+    color: "#fff",
+    fontWeight: "bold",
+  },
 });
