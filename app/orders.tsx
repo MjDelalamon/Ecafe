@@ -26,6 +26,7 @@ type Order = {
   subtotal: number;
   status: string;
   placedAt: string;
+  instructions?: string;
 };
 
 export default function Orders() {
@@ -54,6 +55,7 @@ export default function Orders() {
             subtotal: d.subtotal || 0,
             status: d.status || "Pending",
             placedAt: d.placedAt || "",
+            instructions: d.instructions || "", // ✅ add this line
           };
         });
 
@@ -149,7 +151,16 @@ export default function Orders() {
                 <Text style={styles.modalText}>{selectedOrder.status}</Text>
 
                 <View style={styles.modalDivider} />
-
+                {/* ✅ Instructions Section */}
+{selectedOrder.instructions && (
+  <>
+    <Text style={styles.modalLabel}>Instructions:</Text>
+    <Text style={styles.modalText}>
+      {selectedOrder.instructions}
+    </Text>
+    <View style={styles.modalDivider} />
+  </>
+)}
                 <Text style={styles.modalLabel}>Items:</Text>
                 {selectedOrder.items.map((i) => (
                   <View key={i.id} style={styles.modalItemRow}>
@@ -161,6 +172,9 @@ export default function Orders() {
                 ))}
 
                 <View style={styles.modalDivider} />
+
+                
+
 
                 <View style={styles.modalTotalRow}>
                   <Text style={styles.modalTotalLabel}>Total:</Text>

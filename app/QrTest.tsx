@@ -1,15 +1,16 @@
 import { FontAwesome5, Ionicons, MaterialIcons } from "@expo/vector-icons";
 import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
-import { doc, getDoc, updateDoc } from "firebase/firestore";
+import { collection, doc, getDoc, getDocs, updateDoc } from "firebase/firestore";
 
 import React, { useCallback, useState } from "react";
 import {
+  Alert,
   Modal,
   ScrollView,
   StyleSheet,
   Text,
   TouchableOpacity,
-  View,
+  View
 } from "react-native";
 import QRCode from "react-native-qrcode-svg";
 import { db } from "../Firebase/firebaseConfig";
@@ -39,6 +40,55 @@ export default function QrTest() {
     if (spent >= 5000) return "Silver";
     return "Bronze";
   };
+
+  useFocusEffect(
+  useCallback(() => {
+    const fetchPromos = async () => {
+      if (!qrValue) return;
+
+      try {
+        // 🔹 Get customer's tier
+        const userRef = doc(db, "customers", qrValue);
+        const userSnap = await getDoc(userRef);
+        if (!userSnap.exists()) return;
+
+        const tier = userSnap.data().tier;
+
+        // 🔹 Get all promotions
+        const promoSnap = await getDocs(collection(db, "promotions"));
+        const now = new Date();
+
+        // 🔹 Filter promos for this tier
+        const availablePromos = promoSnap.docs
+          .map((doc) => ({ id: doc.id, ...doc.data() }))
+          .filter(
+            (p: any) =>
+              p.applicableTiers?.includes(tier) &&
+              (!p.endDate || new Date(p.endDate) >= now)
+          );
+
+        // ✅ Only show alert if promos exist
+        if (availablePromos.length > 0) {
+          const promoNames = availablePromos
+            .map((p: any) => `• ${p.title}`)
+            .join("\n");
+
+          Alert.alert(
+            "🎉 New Promotions Available!",
+            `You have ${availablePromos.length} promo${
+              availablePromos.length > 1 ? "s" : ""
+            } for your ${tier} tier:\n\n${promoNames}`
+          );
+        }
+      } catch (error) {
+        console.error("Error checking promos:", error);
+      }
+    };
+
+    fetchPromos();
+  }, [qrValue])
+);
+
 
   // ✅ Get Next Tier Info based on Total Spent
   const getNextTierInfo = (spent: number) => {
@@ -185,12 +235,13 @@ export default function QrTest() {
             <Text style={styles.gridText}>Profile</Text>
           </TouchableOpacity>
           <TouchableOpacity
-            style={styles.gridItem}
-            onPress={() => setPromoModalVisible(true)}
-          >
-            <FontAwesome5 name="gift" size={28} color="#795548" />
-            <Text style={styles.gridText}>Promotions</Text>
-          </TouchableOpacity>
+  style={styles.gridItem}
+  onPress={() => router.push({ pathname: "/PromotionsPage", params: { email: qrValue } })}
+>
+  <FontAwesome5 name="gift" size={28} color="#795548" />
+  <Text style={styles.gridText}>Promotions</Text>
+</TouchableOpacity>
+
         </View>
       </ScrollView>
 

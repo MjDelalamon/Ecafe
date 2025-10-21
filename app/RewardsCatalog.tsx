@@ -38,6 +38,7 @@ export default function MenuList() {
   const [filteredItems, setFilteredItems] = useState<MenuItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadingModalVisible, setLoadingModalVisible] = useState(false);
+  const [instructions, setInstructions] = useState("");
 
   const [alertVisible, setAlertVisible] = useState(false);
   const [alertMessage, setAlertMessage] = useState("");
@@ -163,25 +164,29 @@ export default function MenuList() {
       const orderId = `ORD-${Date.now()}`;
 
       const orderPayload = {
-        customerId: email,
-        id: orderId,
-        subtotal,
-        status: "Pending",
-        placedAt: new Date().toISOString(), // readable
-        createdAt: serverTimestamp(), // for sorting/filter
-        items: [
-          {
-            name: selectedItem.name,
-            price: selectedItem.price,
-            qty,
-            category: selectedItem.category, // ✅ added
-          },
-        ],
-      };
+  customerId: email,
+  id: orderId,
+  subtotal,
+  status: "Pending",
+  placedAt: new Date().toISOString(),
+  createdAt: serverTimestamp(),
+  items: [
+    {
+      name: selectedItem.name,
+      price: selectedItem.price,
+      qty,
+      category: selectedItem.category,
+    },
+  ],
+  instructions: instructions.trim() || "No instructions provided", // ✅ added
+};
+
 
       await addDoc(collection(db, "orders"), orderPayload);
 
       setModalVisible(false);
+      setInstructions("");
+
       showAlert(
         `Order placed for ${selectedItem.name}. Waiting for admin confirmation.`,
         "success"
@@ -275,6 +280,16 @@ export default function MenuList() {
                 <Text style={styles.modalPrice}>{selectedItem.price} pts.</Text>
 
                 <Text style={styles.balanceText}>Points: {points}</Text>
+
+                <TextInput
+  style={styles.input}
+  placeholder="Add special instructions (optional)"
+  value={instructions}
+  onChangeText={setInstructions}
+  multiline
+  numberOfLines={3}
+/>
+
 
                 <View style={styles.buttonGroup}>
                   <TouchableOpacity
@@ -402,6 +417,20 @@ const styles = StyleSheet.create({
     marginTop: 2,
     color: "#795548",
   },
+
+  input: {
+  borderWidth: 1,
+  borderColor: "#d7ccc8",
+  borderRadius: 12,
+  padding: 10,
+  width: "100%",
+  textAlignVertical: "top",
+  marginTop: 12,
+  marginBottom: 12,
+  backgroundColor: "#f9f9f9",
+  color: "#4e342e",
+},
+
 
   // Modals
   modalOverlay: {
