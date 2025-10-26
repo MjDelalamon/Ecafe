@@ -4,6 +4,7 @@ import { doc, getDoc } from "firebase/firestore";
 import React, { useEffect, useState } from "react";
 import {
   ActivityIndicator,
+  Linking,
   ScrollView,
   StyleSheet,
   Text,
@@ -35,6 +36,12 @@ export default function ProfileInfo() {
     };
     fetchUser();
   }, [email]);
+
+  const openSocialMedia = (url: string) => {
+    Linking.openURL(url).catch(() => {
+      alert("Unable to open link.");
+    });
+  };
 
   if (loading) {
     return (
@@ -92,6 +99,31 @@ export default function ProfileInfo() {
             : user.createdAt?.toString() || "N/A"}
         </Text>
       </View>
+
+      {/* 🌐 Social Media Integration Section */}
+      <View style={styles.socialContainer}>
+        <Text style={styles.socialTitle}>Connect with us on social media</Text>
+        <View style={styles.socialIcons}>
+          <TouchableOpacity
+            onPress={() => openSocialMedia("https://www.facebook.com/D.EsperanzaCafe")}
+          >
+            <Ionicons name="logo-facebook" size={36} color="#3b5998" />
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            onPress={() => openSocialMedia("https://www.instagram.com/d.esperanzacafe/")}
+          >
+            <Ionicons name="logo-instagram" size={36} color="#C13584" />
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            onPress={() => openSocialMedia("https://www.tiktok.com/@YourCafePage")}
+          >
+            <Ionicons name="logo-tiktok" size={36} color="#000000" />
+          </TouchableOpacity>
+        </View>
+      </View>
+
       <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
         <Text style={styles.backBtnText}>Back</Text>
       </TouchableOpacity>
@@ -111,13 +143,6 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     backgroundColor: "#fdfcf9",
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: "bold",
-    color: "#795548",
-    marginVertical: 16,
-    textAlign: "center",
   },
   infoBox: {
     backgroundColor: "#fff",
@@ -158,5 +183,26 @@ const styles = StyleSheet.create({
     color: "#fff",
     fontWeight: "bold",
     fontSize: 16,
+  },
+  /* 🌐 Social Media Section Styles */
+  socialContainer: {
+    backgroundColor: "#fff",
+    borderRadius: 14,
+    padding: 15,
+    width: "100%",
+    marginBottom: 20,
+    alignItems: "center",
+    elevation: 2,
+  },
+  socialTitle: {
+    color: "#5d4037",
+    fontWeight: "bold",
+    fontSize: 16,
+    marginBottom: 10,
+  },
+  socialIcons: {
+    flexDirection: "row",
+    justifyContent: "space-around",
+    width: "60%",
   },
 });

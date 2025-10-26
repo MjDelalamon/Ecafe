@@ -35,6 +35,7 @@ export default function Orders() {
   const [loading, setLoading] = useState<boolean>(true);
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [modalVisible, setModalVisible] = useState<boolean>(false);
+  const [filterStatus, setFilterStatus] = useState<"Pending" | "Completed" | "Canceled">("Pending");
 
   useEffect(() => {
     const fetchOrders = async () => {
@@ -55,7 +56,7 @@ export default function Orders() {
             subtotal: d.subtotal || 0,
             status: d.status || "Pending",
             placedAt: d.placedAt || "",
-            instructions: d.instructions || "", // ✅ add this line
+            instructions: d.instructions || "",
           };
         });
 
@@ -70,6 +71,8 @@ export default function Orders() {
     fetchOrders();
   }, [email]);
 
+  const filteredOrders = orders.filter((o) => o.status === filterStatus);
+
   const openOrderDetails = (order: Order) => {
     setSelectedOrder(order);
     setModalVisible(true);
@@ -80,34 +83,54 @@ export default function Orders() {
     setModalVisible(false);
   };
 
+  // Color helper for status
+  const getStatusColor = (status: string) => {
+    if (status === "Completed") return "#388e3c";
+    if (status === "Canceled") return "#d32f2f";
+    return "#f9a825"; // Pending
+  };
+
   return (
     <View style={styles.container}>
       <Text style={styles.header}>My Orders</Text>
 
+      {/* Status Filter */}
+      <View style={{ flexDirection: "row", marginBottom: 15, justifyContent: "center" }}>
+        {["Pending", "Completed", "Canceled"].map((status) => (
+          <Pressable
+            key={status}
+            onPress={() => setFilterStatus(status as "Pending" | "Completed" | "Canceled")}
+            style={{
+              paddingVertical: 6,
+              paddingHorizontal: 12,
+              borderRadius: 20,
+              marginHorizontal: 6,
+              backgroundColor: filterStatus === status ? "#6d4c41" : "#f0e6dc",
+            }}
+          >
+            <Text style={{ color: filterStatus === status ? "#fff" : "#6d4c41", fontWeight: "600" }}>
+              {status}
+            </Text>
+          </Pressable>
+        ))}
+      </View>
+
       {loading ? (
         <ActivityIndicator size="large" color="#6d4c41" />
-      ) : orders.length === 0 ? (
-        <Text style={styles.noOrders}>No orders found</Text>
+      ) : filteredOrders.length === 0 ? (
+        <Text style={styles.noOrders}>No {filterStatus} orders found</Text>
       ) : (
         <FlatList
-          data={orders}
+          data={filteredOrders}
           keyExtractor={(item) => item.id}
           renderItem={({ item }) => (
-            <Pressable
-              style={styles.orderCard}
-              onPress={() => openOrderDetails(item)}
-            >
+            <Pressable style={styles.orderCard} onPress={() => openOrderDetails(item)}>
               <Text style={styles.itemTitle}>Order ID: {item.id}</Text>
               <Text style={styles.status}>
                 Status:{" "}
                 <Text
                   style={{
-                    color:
-                      item.status === "Completed"
-                        ? "#388e3c"
-                        : item.status === "Canceled"
-                        ? "#d32f2f"
-                        : "#f9a825",
+                    color: getStatusColor(item.status),
                     fontWeight: "bold",
                   }}
                 >
@@ -127,7 +150,7 @@ export default function Orders() {
         />
       )}
 
-      {/* ✅ Modal for Order Details */}
+      {/* Modal for Order Details */}
       <Modal
         visible={modalVisible}
         animationType="slide"
@@ -151,16 +174,15 @@ export default function Orders() {
                 <Text style={styles.modalText}>{selectedOrder.status}</Text>
 
                 <View style={styles.modalDivider} />
-                {/* ✅ Instructions Section */}
-{selectedOrder.instructions && (
-  <>
-    <Text style={styles.modalLabel}>Instructions:</Text>
-    <Text style={styles.modalText}>
-      {selectedOrder.instructions}
-    </Text>
-    <View style={styles.modalDivider} />
-  </>
-)}
+
+                {selectedOrder.instructions && (
+                  <>
+                    <Text style={styles.modalLabel}>Instructions:</Text>
+                    <Text style={styles.modalText}>{selectedOrder.instructions}</Text>
+                    <View style={styles.modalDivider} />
+                  </>
+                )}
+
                 <Text style={styles.modalLabel}>Items:</Text>
                 {selectedOrder.items.map((i) => (
                   <View key={i.id} style={styles.modalItemRow}>
@@ -173,14 +195,9 @@ export default function Orders() {
 
                 <View style={styles.modalDivider} />
 
-                
-
-
                 <View style={styles.modalTotalRow}>
                   <Text style={styles.modalTotalLabel}>Total:</Text>
-                  <Text style={styles.modalTotalValue}>
-                    {selectedOrder.subtotal} pts.
-                  </Text>
+                  <Text style={styles.modalTotalValue}>{selectedOrder.subtotal} pts.</Text>
                 </View>
 
                 <Pressable style={styles.closeButton} onPress={closeModal}>
@@ -195,7 +212,7 @@ export default function Orders() {
   );
 }
 
-// 🪶 Styling (matches your beige-brown cafe aesthetic)
+// Styling
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -258,8 +275,6 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
     color: "#6d4c41",
   },
-
-  // Modal Styles
   modalOverlay: {
     flex: 1,
     backgroundColor: "rgba(0,0,0,0.4)",

@@ -88,7 +88,7 @@ export default function Register() {
       if (result.success) {
         Alert.alert(
           "Verify Your Email",
-          "A verification email has been sent. Please verify your email before logging in."
+          "A verification email has been sent. Please check your spam message to verify your email."
         );
 
         router.replace({

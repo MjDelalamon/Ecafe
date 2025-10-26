@@ -7,7 +7,9 @@ import {
   doc,
   getDoc,
   getDocs,
+  query,
   serverTimestamp,
+  where,
 } from "firebase/firestore";
 import React, { useEffect, useState } from "react";
 import {
@@ -22,6 +24,7 @@ import {
   View,
 } from "react-native";
 import { db } from "../Firebase/firebaseConfig";
+import Feedback from "./functions/Feedback";
 
 type MenuItem = {
   id: string;
@@ -55,6 +58,50 @@ export default function MenuList() {
 
   const [categories, setCategories] = useState<string[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<string>("All");
+
+ const [feedbackTriggered, setFeedbackTriggered] = useState(false);
+  const [pendingFeedbackOrder, setPendingFeedbackOrder] = useState<{
+    orderId: string;
+    visible: boolean;
+  } | null>(null);
+
+const [handledFeedbackOrders, setHandledFeedbackOrders] = useState<Set<string>>(new Set());
+
+ useEffect(() => {
+    if (!email || feedbackTriggered) return; // ✅ run only once per session
+    const checkPendingFeedback = async () => {
+      try {
+        const q = query(
+          collection(db, "orders"),
+          where("customerId", "==", email),
+          where("status", "==", "Completed"),
+          where("feedbackGiven", "==", false),
+          where("feedbackSkipped", "==", false)
+        );
+        const snap = await getDocs(q);
+        if (!snap.empty) {
+          const firstPending = snap.docs[0];
+          setPendingFeedbackOrder({
+            orderId: firstPending.id,
+            visible: true,
+          });
+          setFeedbackTriggered(true); // ✅ lock for this session
+        }
+      } catch (err) {
+        console.error("Error checking pending feedback:", err);
+      }
+    };
+    checkPendingFeedback();
+  }, [email, feedbackTriggered]);
+
+  const handleCloseFeedback = () => {
+    setPendingFeedbackOrder(null);
+  };
+
+// In JSX, render Feedback modal
+
+
+
 
   // 🔄 Fetch menu
   useEffect(() => {
@@ -148,56 +195,61 @@ export default function MenuList() {
   };
 
   /// 💳 Place order
-  const handlePlaceOrder = async (method: "wallet" | "points" | "mixed") => {
-    if (!email || !selectedItem) {
-      showAlert("Missing customer or item data", "error");
-      return;
-    }
+ /// 💳 Place order
+const handlePlaceOrder = async (method: "wallet" | "points" | "mixed") => {
+  if (!email || !selectedItem) {
+    showAlert("Missing customer or item data", "error");
+    return;
+  }
 
-    try {
-      setLoadingModalVisible(true);
+  try {
+    setLoadingModalVisible(true);
 
-      // For now qty = 1 (extend UI later to accept quantity)
-      const qty = 1;
-      const subtotal = selectedItem.price * qty;
+    // For now qty = 1 (extend UI later to accept quantity)
+    const qty = 1;
+    const subtotal = selectedItem.price * qty;
 
-      const orderId = `ORD-${Date.now()}`;
+    const orderId = `ORD-${Date.now()}`;
 
-      const orderPayload = {
-  customerId: email,
-  id: orderId,
-  subtotal,
-  status: "Pending",
-  placedAt: new Date().toISOString(),
-  createdAt: serverTimestamp(),
-  items: [
-    {
-      name: selectedItem.name,
-      price: selectedItem.price,
-      qty,
-      category: selectedItem.category,
-    },
-  ],
-  instructions: instructions.trim() || "No instructions provided", // ✅ added
+    const orderPayload = {
+      customerId: email,
+      id: orderId,
+      subtotal,
+      status: "Pending",
+      placedAt: new Date().toISOString(),
+      createdAt: serverTimestamp(),
+      items: [
+        {
+          name: selectedItem.name,
+          price: selectedItem.price,
+          qty,
+          category: selectedItem.category,
+        },
+      ],
+      instructions: instructions.trim() || "No instructions provided",
+
+      // 🟩 default feedback flags
+      feedbackGiven: false,
+      feedbackSkipped: false,
+    };
+
+    await addDoc(collection(db, "orders"), orderPayload);
+
+    setModalVisible(false);
+    setInstructions("");
+
+    showAlert(
+      `Order placed for ${selectedItem.name}. Waiting for admin confirmation.`,
+      "success"
+    );
+  } catch (err) {
+    console.error("Error placing order:", err);
+    showAlert("Failed to place order", "error");
+  } finally {
+    setLoadingModalVisible(false);
+  }
 };
 
-
-      await addDoc(collection(db, "orders"), orderPayload);
-
-      setModalVisible(false);
-      setInstructions("");
-
-      showAlert(
-        `Order placed for ${selectedItem.name}. Waiting for admin confirmation.`,
-        "success"
-      );
-    } catch (err) {
-      console.error("Error placing order:", err);
-      showAlert("Failed to place order", "error");
-    } finally {
-      setLoadingModalVisible(false);
-    }
-  };
 
   if (loading) {
     return (
@@ -343,6 +395,15 @@ export default function MenuList() {
           </View>
         </View>
       </Modal>
+
+      {pendingFeedbackOrder && (
+  <Feedback
+    visible={pendingFeedbackOrder.visible}
+    email={email!}
+    orderId={pendingFeedbackOrder.orderId}
+    onClose={handleCloseFeedback}
+  />
+)}
     </View>
   );
 }
