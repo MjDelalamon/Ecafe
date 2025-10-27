@@ -143,7 +143,7 @@ export default function Orders() {
 
               <View style={styles.totalRow}>
                 <Text style={styles.totalLabel}>Subtotal:</Text>
-                <Text style={styles.totalValue}>₱{item.subtotal}</Text>
+                <Text style={styles.totalValue}> {item.subtotal} Pts</Text>
               </View>
             </Pressable>
           )}
@@ -184,14 +184,15 @@ export default function Orders() {
                 )}
 
                 <Text style={styles.modalLabel}>Items:</Text>
-                {selectedOrder.items.map((i) => (
-                  <View key={i.id} style={styles.modalItemRow}>
-                    <Text style={styles.modalItemName}>
-                      {i.name} × {i.qty}
-                    </Text>
-                    <Text style={styles.modalItemPrice}>{selectedOrder.subtotal} pts.</Text>
-                  </View>
-                ))}
+                {selectedOrder.items.map((i, index) => (
+  <View key={i.id ?? index} style={styles.modalItemRow}>
+    <Text style={styles.modalItemName}>
+      {i.name} × {i.qty}
+    </Text>
+    <Text style={styles.modalItemPrice}>{i.subtotal} pts.</Text>
+  </View>
+))}
+
 
                 <View style={styles.modalDivider} />
 

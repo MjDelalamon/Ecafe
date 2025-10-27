@@ -26,9 +26,9 @@ export default function PointsHistory() {
   const router = useRouter();
   const { email } = useLocalSearchParams<{ email: string }>();
   const [history, setHistory] = useState<Transaction[]>([]);
-  const [filter, setFilter] = useState<"All" | "Points" | "Wallet" | "counter">(
-    "All"
-  );
+  const [filter, setFilter] = useState<
+    "All" | "Points" | "Wallet" | "Counter" | "Mix-Payment"
+  >("All");
   const [sortOrder, setSortOrder] = useState<"Newest" | "Oldest">("Newest");
   const [loading, setLoading] = useState(true);
 
@@ -80,17 +80,26 @@ export default function PointsHistory() {
         setLoading(false);
       }
     };
+
     fetchHistory();
   }, [email]);
 
   // 🔹 Filter + Sort Logic
   const filteredHistory = history
     .filter((item) => {
-      const method = (item.paymentMethod || "").trim().toLowerCase();
+      const method = (item.paymentMethod || "").toLowerCase();
 
       if (filter === "Points") return method.includes("points");
       if (filter === "Wallet") return method.includes("wallet");
-      if (filter === "counter") return method.includes("over the counter");
+      if (filter === "Counter") return method.includes("over the counter");
+      if (filter === "Mix-Payment")
+  return (
+    method.includes("points + wallet") ||
+    method.includes("points + cash") ||
+    method.includes("mix") ||
+    method.includes("mixed")
+  );
+
       return true;
     })
     .sort((a, b) => {
@@ -110,25 +119,27 @@ export default function PointsHistory() {
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={styles.filterGroup}
         >
-          {["All", "Points", "Wallet", "counter"].map((option) => (
-            <TouchableOpacity
-              key={option}
-              style={[
-                styles.filterButton,
-                filter === option && styles.filterButtonActive,
-              ]}
-              onPress={() => setFilter(option as any)}
-            >
-              <Text
+          {["All", "Points", "Wallet", "Counter", "Mix-Payment"].map(
+            (option) => (
+              <TouchableOpacity
+                key={option}
                 style={[
-                  styles.filterText,
-                  filter === option && styles.filterTextActive,
+                  styles.filterButton,
+                  filter === option && styles.filterButtonActive,
                 ]}
+                onPress={() => setFilter(option as any)}
               >
-                {option}
-              </Text>
-            </TouchableOpacity>
-          ))}
+                <Text
+                  style={[
+                    styles.filterText,
+                    filter === option && styles.filterTextActive,
+                  ]}
+                >
+                  {option}
+                </Text>
+              </TouchableOpacity>
+            )
+          )}
           <TouchableOpacity
             style={styles.sortButton}
             onPress={() =>
@@ -181,14 +192,8 @@ export default function PointsHistory() {
               </View>
               <Text style={styles.amount}>
                 {item.paymentMethod.toLowerCase().includes("points")
-                  ? `${
-                      item.type.toLowerCase().includes("points") ? "- " : "+ "
-                    }${item.amount} pts`
-                  : `${
-                      item.type.toLowerCase().includes("purchase")
-                        ? "- ₱"
-                        : "- ₱"
-                    }${item.amount}`}
+                  ? `${item.type.toLowerCase().includes("points") ? "- " : "+ "}${item.amount} pts`
+                  : `- ₱${item.amount}`}
               </Text>
             </TouchableOpacity>
           )}
@@ -219,7 +224,6 @@ const styles = StyleSheet.create({
   },
   filterContainer: {
     flexDirection: "row",
-    justifyContent: "space-between",
     alignItems: "center",
     marginBottom: 15,
     backgroundColor: "#fff8f3",

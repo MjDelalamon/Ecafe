@@ -114,7 +114,12 @@ export default function Register() {
   };
 
   return (
-    <View style={styles.container}>
+  <ScrollView
+    style={{ flex: 1, backgroundColor: "#fdfcf9" }}
+    contentContainerStyle={styles.scrollContainer}
+    showsVerticalScrollIndicator={false}
+  >
+    <View style={styles.innerContainer}>
       <Image
         source={require("../assets/images/logo.jpg")}
         style={styles.logo}
@@ -168,6 +173,7 @@ export default function Register() {
         secureTextEntry
         placeholderTextColor="#9c8b7a"
       />
+
       {confirmPassword.length > 0 && password !== confirmPassword && (
         <Text style={styles.mismatchText}>Passwords do not match</Text>
       )}
@@ -187,70 +193,84 @@ export default function Register() {
       <TouchableOpacity style={styles.buttonBack} onPress={Back}>
         <Text style={styles.buttonTextBack}>Back</Text>
       </TouchableOpacity>
-
-      {/* Loading Modal */}
-      <Modal visible={loading} transparent animationType="fade">
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <ActivityIndicator size="large" color="#795548" />
-            <Text style={styles.loadingText}>Registering...</Text>
-          </View>
-        </View>
-      </Modal>
-
-      {/* Terms & Conditions Modal */}
-      <Modal visible={showTerms} transparent animationType="fade">
-        <View style={styles.modalOverlay}>
-          <View style={styles.termsBox}>
-            <TouchableOpacity style={styles.closeButton} onPress={() => setShowTerms(false)}>
-              <Text style={styles.closeText}>×</Text>
-            </TouchableOpacity>
-
-            <Text style={styles.termsTitle}>Terms and Conditions</Text>
-            <View style={{ maxHeight: 300 }}>
-              <ScrollView showsVerticalScrollIndicator={true}>
-                <Text style={styles.termsText}>
-                  1. By creating an account, you agree to provide accurate information. {"\n\n"}
-                  2. Wallet balances, rewards, and transactions are managed within the system. {"\n\n"}
-                  3. Admin reserves the right to suspend accounts violating policies. {"\n\n"}
-                  4. Promotions, rewards, and offers may change without prior notice. {"\n\n"}
-                  5. By using this app, you agree to the collection of necessary data for transactions. {"\n\n"}
-                </Text>
-              </ScrollView>
-            </View>
-
-            <TouchableOpacity
-              style={styles.acceptButton}
-              onPress={() => {
-                setShowTerms(false);
-                handleContinue();
-              }}
-            >
-              <Text style={styles.acceptText}>Accept & Continue</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={styles.declineButton}
-              onPress={() => setShowTerms(false)}
-            >
-              <Text style={styles.declineText}>Decline</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      </Modal>
     </View>
-  );
+
+    {/* Loading Modal */}
+    <Modal visible={loading} transparent animationType="fade">
+      <View style={styles.modalOverlay}>
+        <View style={styles.modalContent}>
+          <ActivityIndicator size="large" color="#795548" />
+          <Text style={styles.loadingText}>Registering...</Text>
+        </View>
+      </View>
+    </Modal>
+
+    {/* Terms Modal */}
+    <Modal visible={showTerms} transparent animationType="fade">
+      <View style={styles.modalOverlay}>
+        <View style={styles.termsBox}>
+          <TouchableOpacity style={styles.closeButton} onPress={() => setShowTerms(false)}>
+            <Text style={styles.closeText}>×</Text>
+          </TouchableOpacity>
+          <Text style={styles.termsTitle}>Terms and Conditions</Text>
+          <ScrollView style={{ maxHeight: 250 }} showsVerticalScrollIndicator={true}>
+            <Text style={styles.termsText}>
+              1. By creating an account, you agree to provide accurate information. {"\n\n"}
+              2. Wallet balances, rewards, and transactions are managed within the system. {"\n\n"}
+              3. Admin reserves the right to suspend accounts violating policies. {"\n\n"}
+              4. Promotions, rewards, and offers may change without prior notice. {"\n\n"}
+              5. By using this app, you agree to the collection of necessary data for transactions. {"\n\n"}
+            </Text>
+          </ScrollView>
+
+          <TouchableOpacity
+            style={styles.acceptButton}
+            onPress={() => {
+              setShowTerms(false);
+              handleContinue();
+            }}
+          >
+            <Text style={styles.acceptText}>Accept & Continue</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity style={styles.declineButton} onPress={() => setShowTerms(false)}>
+            <Text style={styles.declineText}>Decline</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    </Modal>
+  </ScrollView>
+);
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
+  scrollContainer: {
+    flexGrow: 1,
     justifyContent: "center",
-    padding: 20,
+    alignItems: "center",
+    paddingVertical: 40,
     backgroundColor: "#fdfcf9",
   },
+  innerContainer: {
+    width: "90%",
+    maxWidth: 400,
+    backgroundColor: "#fff",
+    borderRadius: 15,
+    padding: 20,
+    shadowColor: "#000",
+    shadowOpacity: 0.05,
+    shadowRadius: 10,
+    elevation: 3,
+  },
+  logo: {
+    width: 100,
+    height: 100,
+    alignSelf: "center",
+    marginBottom: 10,
+    borderRadius: 60,
+  },
   title: {
-    fontSize: 20,
+    fontSize: 22,
     fontWeight: "bold",
     marginBottom: 20,
     color: "#4e342e",
@@ -260,48 +280,64 @@ const styles = StyleSheet.create({
     width: "100%",
     borderWidth: 1,
     borderColor: "#d7ccc8",
-    padding: 12,
-    marginBottom: 15,
-    borderRadius: 12,
+    padding: 10,
+    marginBottom: 12,
+    borderRadius: 10,
     backgroundColor: "#fff",
-    fontSize: 16,
+    fontSize: 15,
     color: "#3e2723",
   },
-  logo: {
-    width: 120,
-    height: 120,
-    marginBottom: 20,
-    marginLeft: "30%",
-    borderRadius: 60,
+  pickerContainer: {
+    width: "100%",
+    borderWidth: 1,
+    borderColor: "#d7ccc8",
+    borderRadius: 10,
+    backgroundColor: "#fff",
+    marginBottom: 15,
+  },
+  picker: {
+    width: "100%",
+    color: "#3e2723",
   },
   button: {
     backgroundColor: "#795548",
-    paddingVertical: 14,
-    borderRadius: 12,
+    paddingVertical: 12,
+    borderRadius: 10,
     alignItems: "center",
-    marginTop: 10,
-    width: "100%",
+    marginTop: 5,
   },
   buttonBack: {
-    paddingVertical: 14,
-    borderRadius: 12,
+    paddingVertical: 12,
+    borderRadius: 10,
     alignItems: "center",
-    marginTop: 10,
-    width: "100%",
+    marginTop: 8,
   },
   buttonText: {
     color: "#fff",
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: "bold",
   },
   buttonTextBack: {
     color: "#795548",
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: "bold",
+  },
+  mismatchText: {
+    color: "#d32f2f",
+    marginBottom: 8,
+    marginLeft: 4,
+    fontSize: 13,
+    fontWeight: "600",
+  },
+  modalOverlay: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "rgba(0,0,0,0.5)",
   },
   modalContent: {
     backgroundColor: "#fff",
-    padding: 30,
+    padding: 25,
     borderRadius: 15,
     alignItems: "center",
   },
@@ -311,22 +347,19 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     color: "#4e342e",
   },
-  termsTitle: {
-    fontSize: 20,
-    fontWeight: "bold",
-    color: "#4e342e",
-    marginBottom: 10,
-    textAlign: "center",
-  },
   termsBox: {
     backgroundColor: "#fff",
     padding: 20,
     borderRadius: 15,
     width: "85%",
-    shadowColor: "#000",
-    shadowOpacity: 0.2,
-    shadowRadius: 6,
     elevation: 5,
+  },
+  termsTitle: {
+    fontSize: 18,
+    fontWeight: "bold",
+    color: "#4e342e",
+    marginBottom: 10,
+    textAlign: "center",
   },
   termsText: {
     fontSize: 14,
@@ -358,41 +391,14 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "600",
   },
-  modalOverlay: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    backgroundColor: "rgba(0,0,0,0.5)",
-  },
   closeButton: {
     position: "absolute",
     right: 10,
     top: 10,
-    zIndex: 1,
   },
   closeText: {
     fontSize: 22,
     fontWeight: "bold",
     color: "#795548",
-  },
-  pickerContainer: {
-    width: "100%",
-    borderWidth: 1,
-    borderColor: "#d7ccc8",
-    borderRadius: 12,
-    backgroundColor: "#fff",
-    marginBottom: 15,
-    overflow: "hidden",
-  },
-  picker: {
-    width: "100%",
-    color: "#3e2723",
-  },
-  mismatchText: {
-    color: "#d32f2f",
-    marginBottom: 8,
-    marginLeft: 4,
-    fontSize: 13,
-    fontWeight: "600",
   },
 });

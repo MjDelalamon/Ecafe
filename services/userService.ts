@@ -7,7 +7,6 @@ type FirestoreResult =
   | {
       success: true;
       id: string; // same as email
-      
       fullName: string;
       email: string;
       mobile: string;
@@ -28,10 +27,10 @@ export const addUserToFirestore = async (
   wallet = 0,
   status = "Inactive", // start as Inactive until email verified
   tier = "Bronze",
-  gender?: string // add gender parameter
+  gender?: string // optional gender
 ): Promise<FirestoreResult> => {
   try {
-    // 🔹 Check if email already exists in Auth
+    // 🔹 Check if email already exists in Firestore
     const existingUser = await getDoc(doc(db, "customers", email));
     if (existingUser.exists()) {
       return { success: false, error: "Email already registered" };
@@ -45,10 +44,7 @@ export const addUserToFirestore = async (
       await sendEmailVerification(userCredential.user);
     }
 
-    // 🔹 Generate customerNumber
-    const snapshot = await getDoc(doc(db, "customers", email));
-    
-
+    // 🔹 Define new customer data with feedback tracking
     const newCustomer = {
       fullName,
       email,
@@ -58,10 +54,14 @@ export const addUserToFirestore = async (
       status,
       tier,
       createdAt: new Date(),
-      gender, // store gender
+      gender: gender || "Not specified",
+
+      // 🟢 Feedback-related fields (important!)
+      feedbackGiven: false,         // not yet given any feedback
+      lastFeedbackPrompt: null,     // track last time modal appeared
     };
 
-    // 🔹 Store in Firestore with email as ID
+    // 🔹 Store in Firestore (email as document ID)
     await setDoc(doc(db, "customers", email), newCustomer);
 
     return { success: true, id: email, ...newCustomer };

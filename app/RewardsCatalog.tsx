@@ -1,4 +1,5 @@
-import { MaterialIcons } from "@expo/vector-icons";
+import { FontAwesome5 } from "@expo/vector-icons";
+
 import { Picker } from "@react-native-picker/picker";
 import { router, useLocalSearchParams } from "expo-router";
 import {
@@ -7,9 +8,7 @@ import {
   doc,
   getDoc,
   getDocs,
-  query,
-  serverTimestamp,
-  where,
+  serverTimestamp
 } from "firebase/firestore";
 import React, { useEffect, useState } from "react";
 import {
@@ -24,7 +23,7 @@ import {
   View,
 } from "react-native";
 import { db } from "../Firebase/firebaseConfig";
-import Feedback from "./functions/Feedback";
+
 
 type MenuItem = {
   id: string;
@@ -47,6 +46,8 @@ export default function MenuList() {
   const [alertMessage, setAlertMessage] = useState("");
   const [alertType, setAlertType] = useState<"success" | "error">("success");
 
+  const [helpModalVisible, setHelpModalVisible] = useState(false);
+
   const [search, setSearch] = useState("");
   const [wallet, setWallet] = useState(0);
   const [points, setPoints] = useState(0);
@@ -59,46 +60,14 @@ export default function MenuList() {
   const [categories, setCategories] = useState<string[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<string>("All");
 
- const [feedbackTriggered, setFeedbackTriggered] = useState(false);
-  const [pendingFeedbackOrder, setPendingFeedbackOrder] = useState<{
-    orderId: string;
-    visible: boolean;
-  } | null>(null);
+ 
 
-const [handledFeedbackOrders, setHandledFeedbackOrders] = useState<Set<string>>(new Set());
 
- useEffect(() => {
-    if (!email || feedbackTriggered) return; // ✅ run only once per session
-    const checkPendingFeedback = async () => {
-      try {
-        const q = query(
-          collection(db, "orders"),
-          where("customerId", "==", email),
-          where("status", "==", "Completed"),
-          where("feedbackGiven", "==", false),
-          where("feedbackSkipped", "==", false)
-        );
-        const snap = await getDocs(q);
-        if (!snap.empty) {
-          const firstPending = snap.docs[0];
-          setPendingFeedbackOrder({
-            orderId: firstPending.id,
-            visible: true,
-          });
-          setFeedbackTriggered(true); // ✅ lock for this session
-        }
-      } catch (err) {
-        console.error("Error checking pending feedback:", err);
-      }
-    };
-    checkPendingFeedback();
-  }, [email, feedbackTriggered]);
 
-  const handleCloseFeedback = () => {
-    setPendingFeedbackOrder(null);
-  };
 
-// In JSX, render Feedback modal
+const toggleHelpModal = () => setHelpModalVisible(!helpModalVisible);
+  
+
 
 
 
@@ -239,7 +208,7 @@ const handlePlaceOrder = async (method: "wallet" | "points" | "mixed") => {
     setInstructions("");
 
     showAlert(
-      `Order placed for ${selectedItem.name}. Waiting for admin confirmation.`,
+      `Order placed for ${selectedItem.name}. Waiting for Staff confirmation.`,
       "success"
     );
   } catch (err) {
@@ -267,9 +236,47 @@ const handlePlaceOrder = async (method: "wallet" | "points" | "mixed") => {
         <TouchableOpacity onPress={() => router.back()}>
           <Text style={styles.backArrow}>⬅</Text>
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Reward Catalog</Text>
-        <MaterialIcons name="contactless" size={28} color="#4e342e" />
+        <Text style={styles.headerTitle}>Available Reward Items</Text>
+        <TouchableOpacity onPress={toggleHelpModal} style={{ marginLeft: 5 }}>
+                      <FontAwesome5 name="question-circle" size={20} color="#722205ff" />
+                    </TouchableOpacity>
       </View>
+
+      <Modal
+  visible={helpModalVisible}
+  transparent
+  animationType="fade"
+  onRequestClose={toggleHelpModal}
+>
+  <View style={styles.modalOverlay}>
+    <View style={styles.helpModalContent}>
+      <Text style={styles.modalTitle}>Order Guidelines</Text>
+
+      <Text style={styles.modalText}>
+        Orders can only be processed when you are physically present in the
+        store. To avoid delays or cancellations, please make sure you are at the
+        branch before placing your order.
+      </Text>
+
+      <Text style={styles.modalText}>
+        If your order remains unclaimed for more than{" "}
+        <Text style={{ fontWeight: "bold" }}>1 hour</Text>, our staff will
+        automatically cancel it in the system.
+      </Text>
+
+      <Text style={styles.modalText}>
+        You can redeem your reward using{" "}
+        <Text style={{ fontWeight: "bold" }}>cash or wallet balance</Text> if
+        your points are not enough to complete the transaction.
+      </Text>
+
+      <TouchableOpacity onPress={toggleHelpModal} style={styles.closeGuideButton}>
+        <Text style={styles.closeGuideButtonText}>Close</Text>
+      </TouchableOpacity>
+    </View>
+  </View>
+</Modal>
+
       {/* 🔎 Search Bar */}
       <TextInput
         style={styles.searchBar}
@@ -350,6 +357,8 @@ const handlePlaceOrder = async (method: "wallet" | "points" | "mixed") => {
                   >
                     <Text style={styles.payText}>Place Order</Text>
                   </TouchableOpacity>
+                  <Text style={{ marginTop: 10, color: "#4e342e" }}>
+Note: For first time customers, please make sure to read the order processing guide before placing your order.         </Text>
                 </View>
 
                 <TouchableOpacity
@@ -396,14 +405,7 @@ const handlePlaceOrder = async (method: "wallet" | "points" | "mixed") => {
         </View>
       </Modal>
 
-      {pendingFeedbackOrder && (
-  <Feedback
-    visible={pendingFeedbackOrder.visible}
-    email={email!}
-    orderId={pendingFeedbackOrder.orderId}
-    onClose={handleCloseFeedback}
-  />
-)}
+     
     </View>
   );
 }
@@ -536,8 +538,8 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   payText: { color: "#fff", fontWeight: "bold", fontSize: 15 },
-  closeButton: { marginTop: 12, paddingVertical: 8, paddingHorizontal: 20 },
-  closeText: { color: "#6d4c41", fontWeight: "600" },
+  closeButton: { marginTop: 12, paddingVertical: 8, paddingHorizontal: 20, backgroundColor: "#6d4c41", borderRadius: 20,color: "#fff" },
+  closeText: { color: "white", fontWeight: "600" },
 
   // Unavailable State
   unavailableCard: { opacity: 0.6, backgroundColor: "#f5f5f5" },
@@ -589,4 +591,41 @@ const styles = StyleSheet.create({
     marginTop: 6,
   },
   alertButtonText: { color: "#fff", fontWeight: "bold", fontSize: 15 },
+   
+  helpModalContent: { backgroundColor: "#fffdf9", borderRadius: 20, width: "80%", padding: 20, alignItems: "center" },
+  
+  modalText: { fontSize: 14, color: "#5d4037", textAlign: "center" },
+  helpModalContent: {
+  backgroundColor: "#fffdf9",
+  borderRadius: 20,
+  width: "85%",
+  padding: 24,
+  alignItems: "center",
+  shadowColor: "#000",
+  shadowOpacity: 0.1,
+  shadowRadius: 10,
+  shadowOffset: { width: 0, height: 3 },
+},
+
+
+
+closeGuideButton: {
+  marginTop: 16,
+  backgroundColor: "#722205ff",
+  paddingVertical: 10,
+  paddingHorizontal: 30,
+  borderRadius: 25,
+  shadowColor: "#000",
+  shadowOpacity: 0.1,
+  shadowRadius: 3,
+  shadowOffset: { width: 0, height: 2 },
+},
+
+closeGuideButtonText: {
+  color: "white",
+  fontWeight: "600",
+  fontSize: 16,
+},
+
+  
 });

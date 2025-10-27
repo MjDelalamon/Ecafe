@@ -7,7 +7,7 @@ import { db } from "../../Firebase/firebaseConfig";
 type FeedbackProps = {
   visible: boolean;
   email: string;
-  orderId: string;
+  orderId: string; // latest transaction ID to link feedback
   onClose: () => void;
 };
 
@@ -32,7 +32,9 @@ export default function Feedback({ visible, email, orderId, onClose }: FeedbackP
       alert("Please select at least 1 star.");
       return;
     }
+
     try {
+      // Add feedback to feedbacks collection
       await addDoc(collection(db, "feedbacks"), {
         orderId,
         customerId: email,
@@ -40,7 +42,14 @@ export default function Feedback({ visible, email, orderId, onClose }: FeedbackP
         comment,
         createdAt: serverTimestamp(),
       });
-      await updateDoc(doc(db, "orders", orderId), { feedbackGiven: true });
+
+      // Update user document (user-level feedback)
+      const userRef = doc(db, "customers", email);
+      await updateDoc(userRef, {
+        feedbackGiven: true, // prevents showing again
+        lastFeedbackPrompt: serverTimestamp(),
+      });
+
       setThankVisible(true);
       setTimeout(() => {
         setThankVisible(false);
@@ -48,6 +57,7 @@ export default function Feedback({ visible, email, orderId, onClose }: FeedbackP
         setComment("");
         onClose();
       }, 1500);
+
     } catch (err) {
       console.error("Error submitting feedback:", err);
       alert("Failed to submit feedback");
@@ -56,7 +66,10 @@ export default function Feedback({ visible, email, orderId, onClose }: FeedbackP
 
   const skipFeedback = async () => {
     try {
-      await updateDoc(doc(db, "orders", orderId), { feedbackSkipped: true });
+      const userRef = doc(db, "customers", email);
+      await updateDoc(userRef, {
+        lastFeedbackPrompt: serverTimestamp(), // tracks skip time
+      });
       onClose();
     } catch (err) {
       console.error("Error skipping feedback:", err);
@@ -100,7 +113,7 @@ export default function Feedback({ visible, email, orderId, onClose }: FeedbackP
         </View>
       </Modal>
 
-      {/* Thank you */}
+      {/* Thank you modal */}
       <Modal visible={thankVisible} transparent animationType="fade">
         <View style={styles.modalOverlay}>
           <View style={styles.modalBox}>
@@ -113,19 +126,8 @@ export default function Feedback({ visible, email, orderId, onClose }: FeedbackP
 }
 
 const styles = StyleSheet.create({
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: "rgba(0,0,0,0.45)",
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  modalBox: {
-    backgroundColor: "#fff",
-    padding: 24,
-    borderRadius: 20,
-    width: "85%",
-    alignItems: "center",
-  },
+  modalOverlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.45)", justifyContent: "center", alignItems: "center" },
+  modalBox: { backgroundColor: "#fff", padding: 24, borderRadius: 20, width: "85%", alignItems: "center" },
   modalTitle: { fontSize: 20, fontWeight: "bold", color: "#4e342e" },
   input: {
     borderWidth: 1,
@@ -139,13 +141,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#f9f9f9",
     color: "#4e342e",
   },
-  payButton: {
-    backgroundColor: "#6d4c41",
-    paddingVertical: 12,
-    borderRadius: 25,
-    alignItems: "center",
-    flex: 1,
-  },
+  payButton: { backgroundColor: "#6d4c41", paddingVertical: 12, borderRadius: 25, alignItems: "center", flex: 1 },
   payText: { color: "#fff", fontWeight: "bold", fontSize: 15 },
   closeButton: { paddingVertical: 8, paddingHorizontal: 20 },
   closeText: { color: "#6d4c41", fontWeight: "600" },

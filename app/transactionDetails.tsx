@@ -75,6 +75,9 @@ export default function TransactionDetails() {
           <Text style={styles.label}>Status</Text>
           <Text style={styles.value}>{transaction.status || "N/A"}</Text>
 
+          <Text style={styles.label}>Points Earned</Text>
+          <Text style={styles.value}>{transaction.pointsEarned || 0}</Text>
+
           <Text style={styles.label}>Total Amount</Text>
           <Text style={[styles.value, styles.amount]}>
             ₱
