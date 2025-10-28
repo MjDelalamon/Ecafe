@@ -1,9 +1,11 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
+import { signOut } from "firebase/auth";
 import { doc, getDoc } from "firebase/firestore";
 import React, { useEffect, useState } from "react";
 import {
   ActivityIndicator,
+  Alert,
   Linking,
   ScrollView,
   StyleSheet,
@@ -11,7 +13,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { db } from "../Firebase/firebaseConfig";
+import { auth, db } from "../Firebase/firebaseConfig";
 
 export default function ProfileInfo() {
   const { email } = useLocalSearchParams<{ email: string }>();
@@ -41,6 +43,30 @@ export default function ProfileInfo() {
     Linking.openURL(url).catch(() => {
       alert("Unable to open link.");
     });
+  };
+
+  const handleLogout = async () => {
+    Alert.alert(
+      "Confirm Logout",
+      "Are you sure you want to log out?",
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Logout",
+          style: "destructive",
+          onPress: async () => {
+            try {
+              await signOut(auth);
+              Alert.alert("✅ Logged out successfully");
+              router.replace("/"); // balik sa login page
+            } catch (err) {
+              Alert.alert("⚠ Logout Failed", "Please try again.");
+            }
+          },
+        },
+      ],
+      { cancelable: true }
+    );
   };
 
   if (loading) {
@@ -124,6 +150,12 @@ export default function ProfileInfo() {
         </View>
       </View>
 
+      {/* 🔹 Logout Button */}
+      <TouchableOpacity onPress={handleLogout} style={styles.logoutBtn}>
+        <Ionicons name="log-out-outline" size={22} color="#fff" />
+        <Text style={styles.logoutText}>Logout</Text>
+      </TouchableOpacity>
+
       <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
         <Text style={styles.backBtnText}>Back</Text>
       </TouchableOpacity>
@@ -204,5 +236,20 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-around",
     width: "60%",
+  },
+  logoutBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#d32f2f",
+    paddingVertical: 12,
+    paddingHorizontal: 25,
+    borderRadius: 20,
+    marginTop: 10,
+  },
+  logoutText: {
+    color: "#fff",
+    fontSize: 16,
+    fontWeight: "bold",
+    marginLeft: 6,
   },
 });

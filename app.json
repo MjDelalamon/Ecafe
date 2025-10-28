@@ -4,7 +4,7 @@
     "slug": "CafeConnect",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/images/logo.jpg",
+    "icon": "./assets/images/logo.png",
     "scheme": "cafeconnect",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
@@ -35,11 +35,18 @@
             "backgroundColor": "#000000"
           }
         }
-      ]
+      ],
+      "expo-web-browser"
     ],
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "5b25773e-3d93-4364-9bdb-7198ccfb2540"
+      }
     }
   }
 }

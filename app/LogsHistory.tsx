@@ -15,6 +15,7 @@ type Log = {
   amount: number;
   date: string;
   method: string;
+  referenceNo: string;
 };
 
 export default function LogsHistory() {
@@ -59,6 +60,8 @@ export default function LogsHistory() {
             <View>
               <Text style={styles.method}>{item.method}</Text>
               <Text style={styles.date}>{item.date}</Text>
+               <Text style={styles.date} >Ref No.{item.referenceNo}</Text>
+              
             </View>
             <Text style={styles.amount}>+ ₱{item.amount}</Text>
           </View>

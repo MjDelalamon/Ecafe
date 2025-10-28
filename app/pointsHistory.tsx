@@ -27,7 +27,7 @@ export default function PointsHistory() {
   const { email } = useLocalSearchParams<{ email: string }>();
   const [history, setHistory] = useState<Transaction[]>([]);
   const [filter, setFilter] = useState<
-    "All" | "Points" | "Wallet" | "Counter" | "Mix-Payment"
+    "All" | "Points" | "Wallet" | "Cash" | "E-Wallet" | "Mix-Payment"
   >("All");
   const [sortOrder, setSortOrder] = useState<"Newest" | "Oldest">("Newest");
   const [loading, setLoading] = useState(true);
@@ -91,14 +91,16 @@ export default function PointsHistory() {
 
       if (filter === "Points") return method.includes("points");
       if (filter === "Wallet") return method.includes("wallet");
-      if (filter === "Counter") return method.includes("over the counter");
+      if (filter === "Cash") return method.includes("cash") || method.includes("counter");
+      if (filter === "E-Wallet")
+        return method.includes("e-wallet") || method.includes("ewallet");
       if (filter === "Mix-Payment")
-  return (
-    method.includes("points + wallet") ||
-    method.includes("points + cash") ||
-    method.includes("mix") ||
-    method.includes("mixed")
-  );
+        return (
+          method.includes("points + wallet") ||
+          method.includes("points + cash") ||
+          method.includes("mix") ||
+          method.includes("mixed")
+        );
 
       return true;
     })
@@ -119,7 +121,7 @@ export default function PointsHistory() {
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={styles.filterGroup}
         >
-          {["All", "Points", "Wallet", "Counter", "Mix-Payment"].map(
+          {["All", "Points", "Wallet", "Cash", "E-Wallet", "Mix-Payment"].map(
             (option) => (
               <TouchableOpacity
                 key={option}

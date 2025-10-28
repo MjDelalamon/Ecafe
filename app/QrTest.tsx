@@ -255,7 +255,7 @@ if (totalTransactions >= 5) {
 
   🟡 <Text style={{ fontWeight: "bold" }}>Gold (300 points and above)</Text>{"\n"}
   - Congratulations! You’ve reached the highest tier.{"\n"}
-  - Enjoy premium perks, VIP rewards, and special promotions.{"\n\n"}
+  - Enjoy premium perks,and special promotions.{"\n\n"}
 
   Keep Purchaising and collecting points to unlock more rewards and enjoy the benefits of your tier!
 </Text>
@@ -311,10 +311,8 @@ if (totalTransactions >= 5) {
         </View>
       </ScrollView>
 
-      <TouchableOpacity style={styles.backButton} onPress={handleBack}>
-        <Text style={styles.backButtonText}>⬅ Log out</Text>
-      </TouchableOpacity>
-    </View>
+      
+    </View> 
   );
 }
 

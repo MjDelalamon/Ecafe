@@ -24,9 +24,17 @@ export default function LandingScreen() {
 
   const router = useRouter();
 
+  // ✅ Login function
   const handleLogin = async () => {
     if (!email || !password) {
       setError("⚠ Please enter both email and password");
+      return;
+    }
+
+    // Basic email validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      setError("⚠ Please enter a valid email address");
       return;
     }
 
@@ -34,11 +42,7 @@ export default function LandingScreen() {
     setError("");
 
     try {
-      const userCredential = await signInWithEmailAndPassword(
-        auth,
-        email,
-        password
-      );
+      const userCredential = await signInWithEmailAndPassword(auth, email, password);
       const userEmail = userCredential.user.email;
 
       if (!userEmail) {
@@ -67,20 +71,27 @@ export default function LandingScreen() {
           mobile: userData.mobile,
         },
       });
-    } catch {
-      setError(`⚠ Invalid email or password`);
+    } catch (error) {
+      console.log(error);
+      setError("⚠ Invalid email or password");
       setLoading(false);
     }
   };
 
+  // ✅ Navigate to Register
   const handleRegister = () => {
     router.push("/Register");
+  };
+
+  // ✅ Navigate to Forgot Password Page
+  const handleForgotPassword = () => {
+    router.push("/ForgotPassword");
   };
 
   return (
     <View style={styles.container}>
       <Image
-        source={require("../assets/images/logo.jpg")}
+        source={require("../assets/images/logo.png")}
         style={styles.logo}
         resizeMode="contain"
       />
@@ -88,6 +99,7 @@ export default function LandingScreen() {
 
       {error ? <Text style={styles.errorText}>{error}</Text> : null}
 
+      {/* Email Input */}
       <TextInput
         style={styles.input}
         placeholder="Enter your email"
@@ -98,7 +110,7 @@ export default function LandingScreen() {
         placeholderTextColor="#9c8b7a"
       />
 
-      {/* 🔹 Password Input with Eye Toggle */}
+      {/* Password Input */}
       <View style={styles.passwordContainer}>
         <TextInput
           style={styles.passwordInput}
@@ -117,17 +129,30 @@ export default function LandingScreen() {
         </TouchableOpacity>
       </View>
 
+      {/* Forgot Password Link */}
+      {/* Forgot Password Link */}
+
+
+
+      {/* Login Button */}
       <TouchableOpacity style={styles.button} onPress={handleLogin}>
         <Text style={styles.buttonText}>Login</Text>
       </TouchableOpacity>
+      <TouchableOpacity
+  onPress={handleForgotPassword}
+  style={{ alignSelf: "center", marginBottom: 15 }}
+>
+  <Text style={styles.forgotPasswordText}>Forgot Password?</Text>
+</TouchableOpacity>
 
-      <Text style={styles.registerCheck}>Dont have an account?</Text>
+      {/* Register Section */}
+      <Text style={styles.registerCheck}>Don't have an account?</Text>
       <TouchableOpacity style={styles.registerButton} onPress={handleRegister}>
         <Text style={styles.registerText}>Register</Text>
       </TouchableOpacity>
 
-      {/* 🔹 Loading Modal */}
-      <Modal transparent={true} animationType="fade" visible={loading}>
+      {/* Loading Modal */}
+      <Modal transparent animationType="fade" visible={loading}>
         <View style={styles.modalBackground}>
           <View style={styles.modalContent}>
             <ActivityIndicator size="large" color="#795548" />
@@ -185,7 +210,7 @@ const styles = StyleSheet.create({
     borderColor: "#d7ccc8",
     borderRadius: 12,
     backgroundColor: "#fff",
-    marginBottom: 15,
+    marginBottom: 5,
     paddingHorizontal: 10,
   },
   passwordInput: {
@@ -193,6 +218,12 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     fontSize: 16,
     color: "#3e2723",
+  },
+  forgotPasswordText: {
+    color: "#795548",
+    fontSize: 15,
+    fontWeight: "500",
+    textDecorationLine: "underline",
   },
   button: {
     backgroundColor: "#795548",
