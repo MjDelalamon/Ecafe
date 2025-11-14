@@ -55,6 +55,10 @@ export const addUserToFirestore = async (
       tier,
       createdAt: new Date(),
       gender: gender || "Not specified",
+      totalTransactions: 0,
+      totalVisits: 0,
+      LastVisit: null,
+      totalSpent: 0,
 
       // 🟢 Feedback-related fields (important!)
       feedbackGiven: false,         // not yet given any feedback

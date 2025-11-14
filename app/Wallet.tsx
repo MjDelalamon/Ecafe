@@ -55,7 +55,10 @@ export default function WalletScreen() {
       {/* Balance Card */}
       <View style={styles.balanceCard}>
         <Text style={styles.walletLabel}>WALLET BALANCE</Text>
-        <Text style={styles.balanceText}>₱ {walletBalance.toFixed(2)}</Text>
+        <Text style={styles.balanceText}>
+  {walletBalance.toLocaleString('en-PH', { style: 'currency', currency: 'PHP' })}
+</Text>
+
       </View>
 
       {/* Action Buttons */}

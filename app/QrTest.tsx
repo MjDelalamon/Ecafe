@@ -1,37 +1,23 @@
 import { FontAwesome5, Ionicons, MaterialIcons } from "@expo/vector-icons";
-import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
-import { collection, doc, getDoc, getDocs, updateDoc } from "firebase/firestore";
-import React, { useCallback, useState } from "react";
-import {
-  Modal,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
-} from "react-native";
+import { useLocalSearchParams, useRouter } from "expo-router";
+import { collection, doc, getDocs, onSnapshot, updateDoc } from "firebase/firestore";
+import React, { useEffect, useState } from "react";
+import { Modal, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import QRCode from "react-native-qrcode-svg";
 import { db } from "../Firebase/firebaseConfig";
 import Feedback from "./functions/Feedback";
 
 export default function QrTest() {
-  const { qrValue, mobile } = useLocalSearchParams<{
-    qrValue: string;
-    mobile: string;
-  }>();
-
+  const { qrValue, mobile } = useLocalSearchParams<{ qrValue: string; mobile: string }>();
   const router = useRouter();
+
   const [points, setPoints] = useState(0);
   const [tier, setTier] = useState("Bronze");
   const [feedbackVisible, setFeedbackVisible] = useState(false);
-
-  const [nextTierInfo, setNextTierInfo] = useState({
-    next: null,
-    remaining: 0,
-    progress: 0,
-  });
+  const [nextTierInfo, setNextTierInfo] = useState({ next: null, remaining: 0, progress: 0 });
   const [userInfo, setUserInfo] = useState<any>(null);
   const [helpModalVisible, setHelpModalVisible] = useState(false);
+  const [promoAlertShown, setPromoAlertShown] = useState(false);
 
   // ✅ Determine Tier Based on PointsEarned
   const determineTier = (points: number) => {
@@ -42,150 +28,90 @@ export default function QrTest() {
 
   // ✅ Progress + Remaining Points per Tier
   const getNextTierInfo = (points: number) => {
-    if (points < 100)
-      return {
-        next: "Silver",
-        remaining: 100 - points,
-        progress: (points / 100) * 100,
-      };
-    if (points < 300)
-      return {
-        next: "Gold",
-        remaining: 300 - points,
-        progress: ((points - 100) / 200) * 100,
-      };
+    if (points < 100) return { next: "Silver", remaining: 100 - points, progress: (points / 100) * 100 };
+    if (points < 300) return { next: "Gold", remaining: 300 - points, progress: ((points - 100) / 200) * 100 };
     return { next: null, remaining: 0, progress: 100 };
   };
 
-  // ✅ Dynamic Progress Bar Color
   const getTierColor = (tier: string) => {
     switch (tier) {
-      case "Silver":
-        return "#7d7d7dff";
-      case "Gold":
-        return "#ffd900ff";
-      default:
-        return "#cd7f32"; // Bronze
+      case "Silver": return "#7d7d7dff";
+      case "Gold": return "#ffd900ff";
+      default: return "#cd7f32"; // Bronze
     }
   };
 
   const toggleHelpModal = () => setHelpModalVisible(!helpModalVisible);
 
-  const [promoAlertShown, setPromoAlertShown] = useState(false);
+  // ✅ Real-time listener
+  useEffect(() => {
+    if (!qrValue) return;
 
-useFocusEffect(
-  useCallback(() => {
-    const fetchPromos = async () => {
-      if (!qrValue || promoAlertShown) return; // ✅ Stop if already shown
+    const customerRef = doc(db, "customers", qrValue);
+    const transactionsRef = collection(db, "customers", qrValue, "transactions");
 
-      try {
-        const userRef = doc(db, "customers", qrValue);
-        const userSnap = await getDoc(userRef);
-        if (!userSnap.exists()) return;
+    // Listen to customer document
+    const unsubscribeCustomer = onSnapshot(customerRef, async (snap) => {
+      if (!snap.exists()) return;
+      const data = snap.data();
+      setUserInfo(data);
+      setPoints(data.points || 0);
 
-        const tier = userSnap.data().tier;
+      // Check tier based on total points earned from transactions
+      const transSnap = await getDocs(transactionsRef);
+      let totalPointsEarned = 0;
+      transSnap.forEach((doc) => {
+        totalPointsEarned += doc.data().pointsEarned || 0;
+      });
+
+      const newTier = determineTier(totalPointsEarned);
+      setTier(newTier);
+      setNextTierInfo(getNextTierInfo(totalPointsEarned));
+
+      if (data.tier !== newTier) {
+        await updateDoc(customerRef, { tier: newTier });
+      }
+
+      // Feedback modal logic
+      const totalTransactions = transSnap.size;
+      const now = new Date().getTime();
+      const lastPrompt = data.lastFeedbackPrompt?.toMillis?.() || 0;
+      const skippedRecently = now - lastPrompt < 24 * 60 * 60 * 1000;
+
+      if (totalTransactions >= 5 && !data.feedbackGiven && !skippedRecently) {
+        setFeedbackVisible(true);
+      }
+
+      // Promo alert logic
+      if (!promoAlertShown) {
         const promoSnap = await getDocs(collection(db, "promotions"));
-        const now = new Date();
-
         const availablePromos = promoSnap.docs
           .map((doc) => ({ id: doc.id, ...doc.data() }))
           .filter(
             (p: any) =>
-              p.applicableTiers?.includes(tier) &&
-              (!p.endDate || new Date(p.endDate) >= now)
+              p.applicableTiers?.includes(newTier) &&
+              (!p.endDate || new Date(p.endDate) >= new Date())
           );
-
         if (availablePromos.length > 0) {
-          alert(
-            "🎉 New Promotions Available!\nCheck your Promotions page to see the latest offers for your tier"
-          );
-          setPromoAlertShown(true); // ✅ Mark as shown
+          alert("🎉 New Promotions Available! Check your Promotions page for your tier offers.");
+          setPromoAlertShown(true);
         }
-      } catch (error) {
-        console.error("Error checking promos:", error);
       }
-    };
-
-    fetchPromos();
-  }, [qrValue, promoAlertShown])
-);
-
-
-  const fetchCustomerData = useCallback(async () => {
-  if (!qrValue) return;
-  try {
-    const customerRef = doc(db, "customers", qrValue);
-    
-    await updateDoc(customerRef, { status: "Active" });
-
-    const snap = await getDoc(customerRef);
-    if (!snap.exists()) return;
-    const data = snap.data();
-    setUserInfo(data);
-    setPoints(data.points || 0);
-
-    // ✅ Check if customer has any transactions
-    const transRef = collection(db, "customers", qrValue, "transactions");
-    const transSnap = await getDocs(transRef);
-
-    const hasTransactions = !transSnap.empty; // 🔹 Check if collection has documents
-
-    let totalPointsEarned = 0;
-    transSnap.forEach((doc) => {
-      const tData = doc.data();
-      totalPointsEarned += tData.pointsEarned || 0;
     });
 
-    const newTier = determineTier(totalPointsEarned);
-    setTier(newTier);
-    setNextTierInfo(getNextTierInfo(totalPointsEarned));
+    // Set status to Active while mounted
+    updateDoc(customerRef, { status: "Active" });
 
-    if (data.tier !== newTier) {
-      await updateDoc(customerRef, { tier: newTier });
-      console.log("Tier updated to:", newTier);
-    }
+    // Set status to Inactive on unmount
+    return () => {
+      updateDoc(customerRef, { status: "Inactive" });
+      unsubscribeCustomer();
+    };
+  }, [qrValue, promoAlertShown]);
 
-    // ✅ Feedback condition: only show if has transactions
-    // ✅ Feedback condition: show only if there are 5 or more transactions
-const totalTransactions = transSnap.size; // count the number of docs in the "transactions" collection
+  const routerPush = (path: string) => router.push({ pathname: path, params: { email: qrValue } });
 
-if (totalTransactions >= 5) {
-  const now = new Date().getTime();
-  const lastPrompt = data.lastFeedbackPrompt?.toMillis?.() || 0;
-  const skippedRecently = now - lastPrompt < 24 * 60 * 60 * 1000; // 24 hours
-
-  if (!data.feedbackGiven && !skippedRecently) {
-    console.log("🟢 Showing feedback modal — user reached 5+ transactions");
-    setFeedbackVisible(true);
-  }
-} else {
-  console.log(`⏸ Not enough transactions yet (${totalTransactions}/5) — feedback not shown.`);
-}
-
-
-  } catch (err) {
-    console.error("Error fetching customer data:", err);
-  }
-}, [qrValue]);
-
-
- 
-
-
-  useFocusEffect(
-    useCallback(() => {
-      fetchCustomerData();
-    }, [fetchCustomerData])
-  );
-
-  const routerPush = (path: string) =>
-    router.push({ pathname: path, params: { email: qrValue } });
-
-  const handleBack = async () => {
-    if (qrValue)
-      await updateDoc(doc(db, "customers", qrValue), { status: "Inactive" });
-    router.push("/landingPage");
-  };
+  const handleBack = () => router.push("/landingPage");
 
   return (
     <View style={styles.container}>
@@ -201,7 +127,11 @@ if (totalTransactions >= 5) {
               <FontAwesome5 name="question-circle" size={15} color="#722205ff" />
             </TouchableOpacity>
           </View>
-          <Text style={styles.tierText}>Tier: {tier}</Text>
+          <Text style={styles.tierText}>Tier:
+            <Text style={{ color: getTierColor(tier) }}>
+              {" "}{tier}
+            </Text>
+          </Text>
 
           {nextTierInfo.next ? (
             <>
@@ -216,7 +146,7 @@ if (totalTransactions >= 5) {
                 </View>
               </View>
               <Text style={styles.nextTierText}>
-                {nextTierInfo.remaining} more points to reach{" "}
+                {nextTierInfo.remaining.toFixed(2)} more points to reach{" "}
                 <Text style={{ fontWeight: "bold", color: getTierColor(nextTierInfo.next) }}>
                   {nextTierInfo.next}
                 </Text>
@@ -228,7 +158,7 @@ if (totalTransactions >= 5) {
         </View>
 
         <Text style={styles.scanHint}>
-          Get 5% back! Have the staff scan these points to earn rewards.
+          Get 2% back! Have the staff scan these points to earn rewards.
         </Text>
       </View>
 
@@ -323,7 +253,7 @@ const styles = StyleSheet.create({
   barcodeText: { marginTop: 8, fontSize: 16, letterSpacing: 2, fontWeight: "600", color: "#4e342e" },
   pointsBox: { alignItems: "center", marginBottom: 20 },
   pointsValue: { fontSize: 30, fontWeight: "bold", color: "#161413ff", marginTop: 4 },
-  tierText: { marginTop: 6, fontSize: 16, fontWeight: "bold", color: "#722205ff" },
+  tierText: { marginTop: 6, fontSize: 16, fontWeight: "bold", color: "black" },
   nextTierText: { marginTop: 8, fontSize: 13, color: "#722205ff" },
   progressBarContainer: { width: 250, marginTop: 8, borderRadius: 10, overflow: "hidden" },
   progressBar: { width: "100%", height: 7, backgroundColor: "#fff4efff", borderRadius: 10 },

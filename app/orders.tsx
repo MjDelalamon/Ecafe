@@ -189,7 +189,7 @@ export default function Orders() {
     <Text style={styles.modalItemName}>
       {i.name} × {i.qty}
     </Text>
-    <Text style={styles.modalItemPrice}>{i.subtotal} pts.</Text>
+    <Text style={styles.modalItemPrice}>{selectedOrder.subtotal} pts.</Text>
   </View>
 ))}
 

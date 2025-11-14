@@ -50,7 +50,7 @@ export default function LogsHistory() {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.header}>Transaction Logs</Text>
+      <Text style={styles.header}>Top Up Logs</Text>
 
       <FlatList
         data={logs}
@@ -63,7 +63,7 @@ export default function LogsHistory() {
                <Text style={styles.date} >Ref No.{item.referenceNo}</Text>
               
             </View>
-            <Text style={styles.amount}>+ ₱{item.amount}</Text>
+            <Text style={styles.amount}>+ ₱{item.amount.toFixed(2)}</Text>
           </View>
         )}
       />
