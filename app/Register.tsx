@@ -173,7 +173,7 @@ const [showConfirmPassword, setShowConfirmPassword] = useState(false);
     style={styles.eyeIcon}
     onPress={() => setShowPassword(!showPassword)}
   >
-    <FontAwesome name={showPassword ? "eye" : "eye-slash"} size={20} color="#9c8b7a" />
+    <FontAwesome name={showPassword ? "eye" : "eye-slash"} size={20} color="#5d2510ff" />
   </TouchableOpacity>
 </View>
 
@@ -190,7 +190,7 @@ const [showConfirmPassword, setShowConfirmPassword] = useState(false);
     style={styles.eyeIcon}
     onPress={() => setShowConfirmPassword(!showConfirmPassword)}
   >
-    <FontAwesome name={showConfirmPassword ? "eye" : "eye-slash"} size={20} color="#9c8b7a" />
+    <FontAwesome name={showConfirmPassword ? "eye" : "eye-slash"} size={20} color="#5d2510ff" />
   </TouchableOpacity>
 </View>
 
@@ -300,7 +300,7 @@ const [showConfirmPassword, setShowConfirmPassword] = useState(false);
     input: {
       width: "100%",
       borderWidth: 1,
-      borderColor: "#d7ccc8",
+      borderColor: "#5d2510ff",
       padding: 10,
       marginBottom: 12,
       borderRadius: 10,
@@ -311,7 +311,7 @@ const [showConfirmPassword, setShowConfirmPassword] = useState(false);
     pickerContainer: {
       width: "100%",
       borderWidth: 1,
-      borderColor: "#d7ccc8",
+      borderColor: "#5d2510ff",
       borderRadius: 10,
       backgroundColor: "#fff",
       marginBottom: 15,
@@ -321,7 +321,7 @@ const [showConfirmPassword, setShowConfirmPassword] = useState(false);
       color: "#3e2723",
     },
     button: {
-      backgroundColor: "#795548",
+      backgroundColor: "#5d2510ff",
       paddingVertical: 12,
       borderRadius: 10,
       alignItems: "center",
@@ -388,7 +388,7 @@ const [showConfirmPassword, setShowConfirmPassword] = useState(false);
       lineHeight: 20,
     },
     acceptButton: {
-      backgroundColor: "#795548",
+      backgroundColor: "#5d2510ff",
       padding: 12,
       borderRadius: 10,
       marginTop: 15,
@@ -426,7 +426,7 @@ const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   flexDirection: "row",
   alignItems: "center",
   borderWidth: 1,
-  borderColor: "#d7ccc8",
+  borderColor: "#5d2510ff",
   borderRadius: 10,
   marginBottom: 12,
   backgroundColor: "#fff",
@@ -439,6 +439,7 @@ inputPassword: {
 },
 eyeIcon: {
   paddingHorizontal: 10,
+  color: "#5d2510ff",
 },
 
   });

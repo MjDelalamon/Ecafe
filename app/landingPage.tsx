@@ -182,7 +182,7 @@ const styles = StyleSheet.create({
     fontSize: 32,
     fontWeight: "bold",
     marginBottom: 8,
-    color: "#4e342e",
+    color: "#5d2510ff",
   },
   errorText: {
     color: "#d32f2f",
@@ -220,13 +220,14 @@ const styles = StyleSheet.create({
     color: "#3e2723",
   },
   forgotPasswordText: {
-    color: "#795548",
+    color: "#5d2510ff",
     fontSize: 15,
     fontWeight: "500",
     textDecorationLine: "underline",
+    marginTop: 10,
   },
   button: {
-    backgroundColor: "#795548",
+    backgroundColor: "#5d2510ff",
     paddingVertical: 14,
     borderRadius: 12,
     alignItems: "center",
@@ -244,7 +245,7 @@ const styles = StyleSheet.create({
   registerCheck: {
     marginTop: 20,
     fontSize: 14,
-    color: "#6d4c41",
+    color: "#5d2510ff",
   },
   registerText: {
     color: "#795548",
