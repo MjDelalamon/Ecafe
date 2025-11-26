@@ -1,4 +1,5 @@
-import { useLocalSearchParams } from "expo-router";
+import { Ionicons } from "@expo/vector-icons";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import { collection, doc, getDoc, getDocs } from "firebase/firestore";
 import { useEffect, useRef, useState } from "react";
 import {
@@ -7,6 +8,7 @@ import {
   Easing,
   Image,
   Modal,
+  Pressable,
   ScrollView,
   StyleSheet,
   Text,
@@ -42,6 +44,7 @@ export default function PromotionsPage() {
   const [selectedTitle, setSelectedTitle] = useState<string | null>(null);
 
   const animatedValues = useRef<Animated.Value[]>([]);
+  const router = useRouter();
 
   // 🔹 Helpers
   const getDaysUntilStart = (startDate: string) => {
@@ -134,8 +137,15 @@ export default function PromotionsPage() {
 
   return (
     <View style={{ flex: 1, backgroundColor: "#f9f9f9" }}>
-      <ScrollView style={styles.container}>
+      <View style={styles.headerContainer}>
+        <Pressable onPress={() => router.back()} style={styles.backButton}>
+          <Ionicons name="arrow-back" size={24} color="#333" />
+        </Pressable>
         <Text style={styles.header}>Available Promotions</Text>
+        <View style={{ width: 40 }} />
+      </View>
+
+      <ScrollView style={styles.container}>
         {userTier && (
           <Text style={styles.subHeader}>
             Your Tier: <Text style={styles.highlight}>{userTier}</Text>
@@ -218,7 +228,7 @@ export default function PromotionsPage() {
                     disabled={isExpired || isComingSoon}
                     style={[
                       styles.buyButton,
-                      { backgroundColor: isComingSoon || isExpired ? "#ccc" : "#5c3a21" },
+                      { backgroundColor: isComingSoon || isExpired ? "#ccc" : "#28a154ff" },
                     ]}
                     onPress={() => handleAvail(promo)}
                   >
@@ -257,8 +267,22 @@ export default function PromotionsPage() {
 }
 
 const styles = StyleSheet.create({
+  headerContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 20,
+    paddingTop: 15,
+    paddingBottom: 10,
+  },
+  backButton: {
+    width: 40,
+    height: 40,
+    justifyContent: "center",
+    alignItems: "center",
+  },
   container: { padding: 20 },
-  header: { fontSize: 24, fontWeight: "bold", color: "#333", marginBottom: 10 },
+  header: { fontSize: 24, fontWeight: "bold", color: "#333", marginBottom: 10, flex: 1, textAlign: "center" },
   subHeader: { fontSize: 16, color: "#555", marginBottom: 20 },
   highlight: { fontWeight: "bold", color: "#333" },
   noPromo: { textAlign: "center", fontSize: 16, color: "#888", marginTop: 30 },
@@ -290,12 +314,24 @@ const styles = StyleSheet.create({
   promoDescription: { fontSize: 15, color: "#555", marginTop: 4 },
   priceTag: { fontSize: 17, fontWeight: "bold", color: "#333", marginTop: 6 },
   infoText: { fontSize: 13, color: "#888", marginTop: 4 },
-  buyButton: { paddingVertical: 10, borderRadius: 12, marginTop: 12, alignItems: "center" },
-  buyButtonText: { color: "#fff", fontWeight: "bold", fontSize: 16 },
+  buyButton: { 
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    borderRadius: 12, 
+    marginTop: 12, 
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#22C55E"
+  },
+  buyButtonText: { 
+    color: "#fefefeff", 
+    fontWeight: "bold", 
+    fontSize: 16
+  },
   modalOverlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.6)", justifyContent: "center", alignItems: "center" },
   modalContent: { backgroundColor: "#fff", borderRadius: 20, padding: 25, alignItems: "center", width: "80%" },
   modalTitle: { fontSize: 20, fontWeight: "bold", marginBottom: 15, color: "#333" },
   instructions: { fontSize: 14, color: "#555", marginTop: 15, textAlign: "center", lineHeight: 22 },
-  closeButton: { marginTop: 20, paddingHorizontal: 20, paddingVertical: 10, borderRadius: 10, backgroundColor: "#333" },
+  closeButton: { marginTop: 20, paddingHorizontal: 20, paddingVertical: 10, borderRadius: 10, backgroundColor: "#5c3a21" },
   closeText: { color: "#fff", fontWeight: "bold" },
 });

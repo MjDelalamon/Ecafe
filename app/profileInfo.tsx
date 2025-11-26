@@ -7,6 +7,7 @@ import {
   ActivityIndicator,
   Alert,
   Linking,
+  Pressable,
   ScrollView,
   StyleSheet,
   Text,
@@ -90,6 +91,14 @@ export default function ProfileInfo() {
 
   return (
     <ScrollView contentContainerStyle={styles.container}>
+      <View style={styles.headerContainer}>
+        <Pressable onPress={() => router.back()} style={styles.backButton}>
+          <Ionicons name="arrow-back" size={24} color="#795548" />
+        </Pressable>
+        <Text style={styles.headerTitle}>Profile Info</Text>
+        <View style={{ width: 40 }} />
+      </View>
+
       <Ionicons
         name="person-circle-outline"
         size={80}
@@ -156,9 +165,7 @@ export default function ProfileInfo() {
         <Text style={styles.logoutText}>Logout</Text>
       </TouchableOpacity>
 
-      <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
-        <Text style={styles.backBtnText}>Back</Text>
-      </TouchableOpacity>
+      
     </ScrollView>
   );
 }
@@ -169,6 +176,26 @@ const styles = StyleSheet.create({
     backgroundColor: "#fdfcf9",
     flexGrow: 1,
     alignItems: "center",
+  },
+  headerContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: 20,
+    width: "100%",
+  },
+  backButton: {
+    width: 40,
+    height: 40,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  headerTitle: {
+    fontSize: 22,
+    fontWeight: "700",
+    color: "#4e342e",
+    textAlign: "center",
+    flex: 1,
   },
   centered: {
     flex: 1,

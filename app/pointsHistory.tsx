@@ -1,9 +1,11 @@
+import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { collection, getDocs, orderBy, query } from "firebase/firestore";
 import React, { useEffect, useState } from "react";
 import {
   ActivityIndicator,
   FlatList,
+  Pressable,
   ScrollView,
   StyleSheet,
   Text,
@@ -112,7 +114,13 @@ export default function PointsHistory() {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.header}>Transaction History</Text>
+      <View style={styles.headerContainer}>
+        <Pressable onPress={() => router.back()} style={styles.backButton}>
+          <Ionicons name="arrow-back" size={24} color="#4e342e" />
+        </Pressable>
+        <Text style={styles.header}>Transaction History</Text>
+        <View style={{ width: 40 }} />
+      </View>
 
       {/* 🔸 Filter + Sort Bar */}
       <View style={styles.filterContainer}>
@@ -201,28 +209,35 @@ export default function PointsHistory() {
           )}
         />
       )}
-
-      <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
-        <Text style={styles.backButtonText}>⬅ Back</Text>
-      </TouchableOpacity>
     </View>
   );
 }
 
-// 🪶 Café-themed design
 const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: "#fdfaf6",
     padding: 20,
   },
+  headerContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: 15,
+  },
+  backButton: {
+    width: 40,
+    height: 40,
+    justifyContent: "center",
+    alignItems: "center",
+  },
   header: {
     fontSize: 22,
     fontWeight: "700",
-    marginBottom: 15,
+    marginBottom: 0,
     color: "#4e342e",
     textAlign: "center",
-    letterSpacing: 0.5,
+    flex: 1,
   },
   filterContainer: {
     flexDirection: "row",
@@ -310,24 +325,7 @@ const styles = StyleSheet.create({
   amount: {
     fontSize: 18,
     fontWeight: "700",
-    color: "#4e342e",
+    color: "#d32f2f",
     marginLeft: 10,
-  },
-  backButton: {
-    marginTop: 25,
-    paddingVertical: 10,
-    paddingHorizontal: 20,
-    backgroundColor: "#6d4c41",
-    borderRadius: 10,
-    alignSelf: "center",
-    shadowColor: "#3e2723",
-    shadowOpacity: 0.25,
-    shadowOffset: { width: 0, height: 3 },
-    shadowRadius: 5,
-  },
-  backButtonText: {
-    fontSize: 16,
-    fontWeight: "600",
-    color: "#fff",
   },
 });

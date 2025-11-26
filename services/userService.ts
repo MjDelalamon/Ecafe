@@ -15,6 +15,7 @@ type FirestoreResult =
       tier: string;
       status: string;
       createdAt: Date;
+      newComer: boolean; // 🔹 ADDED HERE
     }
   | { success: false; error: unknown };
 
@@ -27,7 +28,8 @@ export const addUserToFirestore = async (
   wallet = 0,
   status = "Inactive", // start as Inactive until email verified
   tier = "Bronze",
-  gender?: string // optional gender
+  gender?: string,
+  newComer: boolean = true // 🔹 DEFAULT TRUE
 ): Promise<FirestoreResult> => {
   try {
     // 🔹 Check if email already exists in Firestore
@@ -55,14 +57,15 @@ export const addUserToFirestore = async (
       tier,
       createdAt: new Date(),
       gender: gender || "Not specified",
+      newComer, // 🔥 ADDED TO FIRESTORE
       totalTransactions: 0,
       totalVisits: 0,
       LastVisit: null,
       totalSpent: 0,
 
-      // 🟢 Feedback-related fields (important!)
-      feedbackGiven: false,         // not yet given any feedback
-      lastFeedbackPrompt: null,     // track last time modal appeared
+      // 🟢 Feedback-related fields
+      feedbackGiven: false,
+      lastFeedbackPrompt: null,
     };
 
     // 🔹 Store in Firestore (email as document ID)

@@ -1,4 +1,5 @@
-import { useLocalSearchParams } from "expo-router";
+import { Ionicons } from "@expo/vector-icons";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import { collection, getDocs, query, where } from "firebase/firestore";
 import React, { useEffect, useState } from "react";
 import {
@@ -30,6 +31,7 @@ type Order = {
 };
 
 export default function Orders() {
+  const router = useRouter();
   const { email } = useLocalSearchParams<{ email: string }>();
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
@@ -92,7 +94,13 @@ export default function Orders() {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.header}>My Orders</Text>
+      <View style={styles.headerContainer}>
+        <Pressable onPress={() => router.back()} style={styles.backButton}>
+          <Ionicons name="arrow-back" size={24} color="#6d4c41" />
+        </Pressable>
+        <Text style={styles.header}>My Orders</Text>
+        <View style={{ width: 40 }} />
+      </View>
 
       {/* Status Filter */}
       <View style={{ flexDirection: "row", marginBottom: 15, justifyContent: "center" }}>
@@ -142,7 +150,7 @@ export default function Orders() {
               </Text>
 
               <View style={styles.totalRow}>
-                <Text style={styles.totalLabel}>Subtotal:</Text>
+                <Text style={styles.totalLabel}>Total:</Text>
                 <Text style={styles.totalValue}> {item.subtotal} Pts</Text>
               </View>
             </Pressable>
@@ -220,12 +228,23 @@ const styles = StyleSheet.create({
     padding: 15,
     backgroundColor: "#fdfaf6",
   },
+  headerContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: 20,
+  },
+  backButton: {
+    padding: 8,
+    borderRadius: 50,
+    backgroundColor: "#f0e6dc",
+  },
   header: {
     fontSize: 22,
     fontWeight: "700",
     color: "#4e342e",
     textAlign: "center",
-    marginBottom: 20,
+    flex: 1,
   },
   noOrders: {
     textAlign: "center",
@@ -338,14 +357,14 @@ const styles = StyleSheet.create({
   },
   closeButton: {
     marginTop: 20,
-    backgroundColor: "#6d4c41",
+    
     paddingVertical: 10,
     borderRadius: 12,
   },
   closeButtonText: {
     textAlign: "center",
-    color: "#fff",
+    color: "#080202ff",
     fontWeight: "600",
-    fontSize: 16,
+    fontSize: 20,
   },
 });

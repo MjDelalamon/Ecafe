@@ -1,8 +1,8 @@
-import { FontAwesome5, MaterialIcons } from "@expo/vector-icons";
+import { FontAwesome5, Ionicons, MaterialIcons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { doc, onSnapshot } from "firebase/firestore";
 import React, { useEffect, useState } from "react";
-import { Modal, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { Modal, Pressable, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import QRCode from "react-native-qrcode-svg";
 import { auth, db } from "../Firebase/firebaseConfig";
 
@@ -45,11 +45,11 @@ export default function WalletScreen() {
     <View style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()}>
-          <Text style={styles.backArrow}>⬅</Text>
-        </TouchableOpacity>
+        <Pressable onPress={() => router.back()} style={styles.backButton}>
+          <Ionicons name="arrow-back" size={24} color="#4e342e" />
+        </Pressable>
         <Text style={styles.headerTitle}>Wallet</Text>
-        <MaterialIcons name="contactless" size={28} color="#4e342e" />
+        <MaterialIcons size={28} color="#4e342e" />
       </View>
 
       {/* Balance Card */}
@@ -133,6 +133,12 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginBottom: 20,
   },
+  backButton: {
+    width: 40,
+    height: 40,
+    justifyContent: "center",
+    alignItems: "center",
+  },
   backArrow: {
     fontSize: 20,
     color: "#4e342e",
@@ -142,6 +148,7 @@ const styles = StyleSheet.create({
     fontSize: 20,
     fontWeight: "bold",
     color: "#4e342e",
+    marginRight: 25,
   },
   balanceCard: {
     backgroundColor: "#2e7d32",

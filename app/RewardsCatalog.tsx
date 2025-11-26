@@ -1,5 +1,4 @@
-import { FontAwesome5 } from "@expo/vector-icons";
-
+import { FontAwesome5, Ionicons } from "@expo/vector-icons";
 import { Picker } from "@react-native-picker/picker";
 import { router, useLocalSearchParams } from "expo-router";
 import {
@@ -16,6 +15,7 @@ import {
   FlatList,
   Image,
   Modal,
+  Pressable,
   StyleSheet,
   Text,
   TextInput,
@@ -233,13 +233,13 @@ const handlePlaceOrder = async (method: "wallet" | "points" | "mixed") => {
     <View style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()}>
-          <Text style={styles.backArrow}>⬅</Text>
-        </TouchableOpacity>
+        <Pressable onPress={() => router.back()} style={styles.backButton}>
+          <Ionicons name="arrow-back" size={24} color="#722205ff" />
+        </Pressable>
         <Text style={styles.headerTitle}>Available Reward Items</Text>
-        <TouchableOpacity onPress={toggleHelpModal} style={{ marginLeft: 5 }}>
-                      <FontAwesome5 name="question-circle" size={20} color="#722205ff" />
-                    </TouchableOpacity>
+        <Pressable onPress={toggleHelpModal}>
+          <FontAwesome5 name="question-circle" size={20} color="#722205ff" />
+        </Pressable>
       </View>
 
       <Modal
@@ -424,6 +424,12 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     marginBottom: 18,
   },
+  backButton: {
+    width: 40,
+    height: 40,
+    justifyContent: "center",
+    alignItems: "center",
+  },
   backArrow: {
     fontSize: 22,
     color: "#795548",
@@ -523,7 +529,7 @@ const styles = StyleSheet.create({
   modalPrice: {
     fontSize: 18,
     fontWeight: "bold",
-    color: "#795548",
+    color: "brown",
     marginTop: 10,
   },
   balanceText: { fontSize: 14, color: "#4e342e", marginBottom: 14 },
@@ -531,15 +537,15 @@ const styles = StyleSheet.create({
   // Buttons
   buttonGroup: { width: "100%" },
   payButton: {
-    backgroundColor: "#6d4c41",
+    backgroundColor: "#28A745",
     paddingVertical: 12,
     borderRadius: 25,
     marginVertical: 8,
     alignItems: "center",
   },
   payText: { color: "#fff", fontWeight: "bold", fontSize: 15 },
-  closeButton: { marginTop: 12, paddingVertical: 8, paddingHorizontal: 20, backgroundColor: "#6d4c41", borderRadius: 20,color: "#fff" },
-  closeText: { color: "white", fontWeight: "600" },
+  closeButton: { marginTop: 12, paddingVertical: 8, paddingHorizontal: 20,  borderRadius: 20,color: "#fff" },
+  closeText: { color: "#421202ff", fontWeight: "bold",fontSize: 16 },
 
   // Unavailable State
   unavailableCard: { opacity: 0.6, backgroundColor: "#f5f5f5" },

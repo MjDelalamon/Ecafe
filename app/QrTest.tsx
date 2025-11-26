@@ -15,6 +15,7 @@ import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-nati
 import QRCode from "react-native-qrcode-svg";
 import { db } from "../Firebase/firebaseConfig";
 import Feedback from "./functions/Feedback";
+import NewComerModal from "./functions/NewComerModal";
 
 export default function QrTest() {
   const { qrValue, mobile } = useLocalSearchParams<{ qrValue: string; mobile: string }>();
@@ -25,9 +26,9 @@ export default function QrTest() {
   const [feedbackVisible, setFeedbackVisible] = useState(false);
   const [nextTierInfo, setNextTierInfo] = useState({ next: null, remaining: 0, progress: 0 });
   const [userInfo, setUserInfo] = useState<any>(null);
-  const [helpModalVisible, setHelpModalVisible] = useState(false);
   const [promoAlertShown, setPromoAlertShown] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
+  const [newComerModalVisible, setNewComerModalVisible] = useState(false);
 
   // ==============================
   // 🔔 Notification Listener
@@ -46,13 +47,11 @@ export default function QrTest() {
   }, [qrValue]);
 
   const openNotifications = async () => {
-    // Navigate to Notifications screen
     router.push({
       pathname: "/NotificationScreen",
       params: { email: qrValue },
     });
 
-    // Mark all notifications as read
     const notifRef = collection(db, "customers", qrValue, "notifications");
     const notifSnap = await getDocs(notifRef);
     const batch = writeBatch(db);
@@ -64,7 +63,7 @@ export default function QrTest() {
     });
 
     await batch.commit();
-    setUnreadCount(0); // immediately update badge
+    setUnreadCount(0);
   };
 
   const determineTier = (points: number) => {
@@ -92,8 +91,6 @@ export default function QrTest() {
     }
   };
 
-  const toggleHelpModal = () => setHelpModalVisible(!helpModalVisible);
-
   // ==============================
   // 🔄 Real-time User Listener
   // ==============================
@@ -110,6 +107,14 @@ export default function QrTest() {
       setUserInfo(data || {});
       const totalPoints = data?.points || 0;
       setPoints(totalPoints);
+
+      // 🔥 NEWCOMER CHECK → Show onboarding modal if true
+      if (data?.newComer === true) {
+        setNewComerModalVisible(true);
+
+        // 🔥 Update Firestore so it shows only ONCE
+        await updateDoc(customerRef, { newComer: false }).catch(console.error);
+      }
 
       const transSnap = await getDocs(transactionsRef);
       let totalPointsEarned = 0;
@@ -165,6 +170,7 @@ export default function QrTest() {
   // ==============================
   return (
     <View style={styles.container}>
+
       {/* 🔔 Notification Bell */}
       <TouchableOpacity style={styles.notifIcon} onPress={openNotifications}>
         <Ionicons name="notifications-outline" size={28} color="#722205ff" />
@@ -176,19 +182,21 @@ export default function QrTest() {
       </TouchableOpacity>
 
       <View style={styles.qrContainer}>
-        {qrValue ? <QRCode value={qrValue} size={180} /> : <Text style={styles.error}>No QR code</Text>}
+        {qrValue ? <QRCode value={qrValue} size={180} /> : <Text>No QR code</Text>}
         <Text style={styles.barcodeText}>{mobile || "No Mobile"}</Text>
 
         <View style={styles.pointsBox}>
           <View style={{ flexDirection: "row", alignItems: "center" }}>
             <Text style={styles.pointsValue}>{points?.toFixed(2) || 0} Pts</Text>
-            <TouchableOpacity onPress={toggleHelpModal} style={{ marginLeft: 5 }}>
+
+            {/* ❓ Question mark → Opens NewComer Modal */}
+            <TouchableOpacity onPress={() => setNewComerModalVisible(true)} style={{ marginLeft: 5 }}>
               <FontAwesome5 name="question-circle" size={15} color="#722205ff" />
             </TouchableOpacity>
           </View>
 
           <Text style={styles.tierText}>
-            Tier: <Text style={{ color: getTierColor(tier) }}>{tier || "Bronze"}</Text>
+            Tier: <Text style={{ color: getTierColor(tier) }}>{tier}</Text>
           </Text>
 
           {nextTierInfo?.next ? (
@@ -196,12 +204,18 @@ export default function QrTest() {
               <View style={styles.progressBarContainer}>
                 <View style={styles.progressBar}>
                   <View
-                    style={[styles.progressFill, { width: `${nextTierInfo.progress || 0}%`, backgroundColor: getTierColor(tier) }]}
+                    style={[
+                      styles.progressFill,
+                      {
+                        width: `${nextTierInfo.progress || 0}%`,
+                        backgroundColor: getTierColor(tier),
+                      },
+                    ]}
                   />
                 </View>
               </View>
               <Text style={styles.nextTierText}>
-                {nextTierInfo?.remaining?.toFixed(2) || 0} pts to reach{" "}
+                {nextTierInfo.remaining?.toFixed(2)} pts to reach{" "}
                 <Text style={{ fontWeight: "bold", color: getTierColor(nextTierInfo.next) }}>
                   {nextTierInfo.next}
                 </Text>
@@ -215,12 +229,18 @@ export default function QrTest() {
         <Text style={styles.scanHint}>Get 2% back! Have the staff scan these points.</Text>
       </View>
 
-      {/* FEEDBACK MODAL */}
+      {/* ⭐ FEEDBACK MODAL */}
       <Feedback
         visible={feedbackVisible}
         email={qrValue || ""}
         orderId={userInfo?.latestTransactionId || ""}
         onClose={() => setFeedbackVisible(false)}
+      />
+
+      {/* 🆕 NEWCOMER ONBOARDING MODAL */}
+      <NewComerModal
+        visible={newComerModalVisible}
+        onClose={() => setNewComerModalVisible(false)}
       />
 
       <ScrollView style={{ flex: 1, width: "100%" }}>
@@ -252,11 +272,28 @@ export default function QrTest() {
 // ==============================
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: "#fdfcf9", padding: 15, alignItems: "center" },
+
   notifIcon: { position: "absolute", top: 20, right: 20, zIndex: 10 },
-  notifBadge: { position: "absolute", top: -5, right: -5, backgroundColor: "red", borderRadius: 10, paddingHorizontal: 5, paddingVertical: 1 },
+  notifBadge: {
+    position: "absolute",
+    top: -5,
+    right: -5,
+    backgroundColor: "red",
+    borderRadius: 10,
+    paddingHorizontal: 5,
+    paddingVertical: 1,
+  },
   notifBadgeText: { color: "#fff", fontSize: 10, fontWeight: "bold" },
 
-  qrContainer: { alignItems: "center", marginBottom: 20, backgroundColor: "#fff", padding: 20, borderRadius: 16, elevation: 5, width: "100%" },
+  qrContainer: {
+    alignItems: "center",
+    marginBottom: 20,
+    backgroundColor: "#fff",
+    padding: 20,
+    borderRadius: 16,
+    elevation: 5,
+    width: "100%",
+  },
   barcodeText: { marginTop: 8, fontSize: 16, letterSpacing: 2, fontWeight: "600", color: "#4e342e" },
 
   pointsBox: { alignItems: "center", marginBottom: 20 },
@@ -272,8 +309,14 @@ const styles = StyleSheet.create({
   scanHint: { fontSize: 12, color: "#722205ff", marginTop: 4, textAlign: "center" },
 
   grid: { flexDirection: "row", flexWrap: "wrap", justifyContent: "space-between", width: "100%", marginTop: 10 },
-  gridItem: { width: "47%", backgroundColor: "#fff", padding: 20, borderRadius: 12, alignItems: "center", marginVertical: 8, elevation: 3 },
+  gridItem: {
+    width: "47%",
+    backgroundColor: "#fff",
+    padding: 20,
+    borderRadius: 12,
+    alignItems: "center",
+    marginVertical: 8,
+    elevation: 3,
+  },
   gridText: { marginTop: 8, fontSize: 14, fontWeight: "600", textAlign: "center", color: "#3e2723" },
-
-  error: { fontSize: 16, color: "red" },
 });

@@ -72,7 +72,8 @@ export default function LoadWalletPage() {
       </Text>
 
       <Text style={styles.note}>
-        Tip: It’s better to load your wallet over the counter.
+        Tip: It’s better to load your wallet over the counter.For faster
+        service, please present the Reference No. to the cashier.
       </Text>
 
       {/* Reference No. Input */}
